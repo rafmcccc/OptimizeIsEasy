@@ -42,3 +42,64 @@ messages:
 
   AFKOptimizer:
     afk_kick: "<gray>You have been kicked for being idle!"
+
+  Optimize:
+    no_permission: "<gray>Missing permission: <yellow>optimizeiseasy.optimize"
+    usage: "<gray>Usage: <white>/optimize <status|now|toggle [module]|reload|gui|version>"
+    unknown: "<gray>Unknown subcommand. Use <white>/optimize <status|now|toggle|reload>"
+    status_header: "<dark_gray>---- <green>OptimizeIsEasy Status</green> <dark_gray>----"
+    tps: "<gray>TPS: <yellow><tps>"
+    mspt: "<gray>MSPT: <yellow><mspt>"
+    entities: "<gray>Entities: <yellow><entities>"
+    hibernation_frozen: "<gray>Hibernation: <red>Frozen"
+    hibernation_running: "<gray>Hibernation: <green>Running"
+    modules: "<gray>Modules: <yellow><enabled><gray>/<yellow><total>"
+    next_purge: "<gray>Next purge: <yellow><interval>s"
+    now_complete: "<green>Optimization complete. <gray>Removed <yellow><count> <gray>entities."
+    reload_start: "<gray>Reloading OptimizeIsEasy..."
+    reload_done: "<green>Reload done in <yellow><ms>ms<green>. Validated <yellow><ok><green> modules, <yellow><failed><green> issues."
+    reload_failed: "<red>Reload failed: <yellow><error>"
+    toggle_notfound: "<red>Unknown module: <yellow><module>"
+    toggle_available: "<gray>Available: <white><list>"
+    toggle_disabled: "<red>Disabled <yellow><module>"
+    toggle_enabled: "<green>Enabled <yellow><module>"
+    toggle_failed: "<red>Failed to enable <yellow><module>"
+    toggle_error: "<red>Error toggling <yellow><module>: <white><error>"
+    hibernate_notfound: "<red>Hibernate module not found."
+    hibernate_frozen: "<red>Cannot freeze while players are online."
+    unfrozen: "<green>Server unfrozen."
+    frozen: "<green>Server frozen."
+
+  ExploitFix:
+    no_permission: "<gray>Missing permission: <yellow>optimizeiseasy.exploitfix"
+    usage: "<gray>Usage: <white>/exploitfix <status|list|toggle <name>|freeze <player>>"
+    status_header: "<dark_gray>---- <red>ExploitFix Status</red> <dark_gray>----"
+    active: "<gray>Active protections: <yellow><count>"
+    hibernation: "<gray>Hibernation: <yellow><state>"
+    frozen_players: "<gray>Frozen players: <yellow><count>"
+    list_header: "<dark_gray>---- <red>Patched Exploits</red> <dark_gray>----"
+    unknown_patch: "<red>Unknown patch: <yellow><name>"
+    try_list: "<gray>Try: <white><list>"
+    disabled_patch: "<red>Disabled <yellow><module>"
+    enabled_patch: "<green>Enabled <yellow><module>"
+    patch_failed: "<red>Failed to enable <yellow><module>"
+    player_notfound: "<red>Player not found: <yellow><player>"
+    unfroze: "<green>Unfroze <yellow><player>"
+    unfrozen_msg: "<green>You have been unfrozen."
+    froze: "<red>Froze <yellow><player> <gray>for investigation."
+    frozen_msg: "<red>You have been frozen for investigation. Do not log out."
+    frozen_block: "<red>You are frozen and cannot use commands."
+
+  Version:
+    line: "<gray>OptimizeIsEasy <yellow><version> <gray>by rafmcccc - Paper <paper> - <fork>"
+
+  Update:
+    available: "<green>Update available <yellow><current> -> <latest> <gray>at <url>"
+    up_to_date: "<gray>You are up to date. Current <yellow><version>"
+    failed: "<red>Update check failed: <yellow><error>"
+
+  GUI:
+    title: "<dark_gray>OptimizeIsEasy - Modules"
+    hibernate_frozen: "<red>Frozen"
+    hibernate_running: "<green>Running"
+    toggle: "<gray>Click to toggle <yellow><module>"
