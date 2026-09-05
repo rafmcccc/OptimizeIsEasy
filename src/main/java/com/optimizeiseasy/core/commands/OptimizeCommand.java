@@ -41,7 +41,8 @@ public class OptimizeCommand implements TabExecutor {
             case "status" -> handleStatus(sender);
             case "now" -> handleNow(sender);
             case "toggle" -> handleToggle(sender, args.length > 1 ? args[1] : null);
-            default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle>");
+            case "reload" -> handleReload(sender);
+            default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle|reload>");
         }
         return true;
     }
@@ -94,6 +95,34 @@ public class OptimizeCommand implements TabExecutor {
         }
         sender.sendMessage("§aOptimization pass complete. §7Removed §e" + removed + " §7entities. Freed memory.");
         if (plugin.isDebug()) plugin.getLogger().fine("Manual optimization by " + sender.getName() + " removed " + removed);
+    }
+
+    private void handleReload(CommandSender sender) {
+        long start = System.currentTimeMillis();
+        sender.sendMessage("§7Reloading OptimizeIsEasy...");
+        try {
+            // Validate main config before reload
+            plugin.reload();
+            // Validate each module config
+            int ok = 0, failed = 0;
+            for (AbstractModule m : plugin.getModuleManager().getModules()) {
+                try {
+                    m.loadConfigSection();
+                    if (!m.loadConfig()) failed++;
+                    else ok++;
+                } catch (Exception ex) {
+                    failed++;
+                    plugin.getLogger().warning("Config validator: " + m.getName() + " invalid - " + ex.getMessage());
+                    if (plugin.isDebug()) plugin.getLogger().fine("Validator trace for " + m.getName() + ": " + ex);
+                }
+            }
+            long ms = System.currentTimeMillis() - start;
+            sender.sendMessage("§aReload done in " + ms + " ms. Validated " + ok + " modules, " + failed + " had issues (check console).");
+            if (plugin.isDebug()) plugin.getLogger().fine("Reload by " + sender.getName() + " ok=" + ok + " failed=" + failed);
+        } catch (Exception e) {
+            sender.sendMessage("§cReload failed: " + e.getMessage());
+            plugin.getLogger().warning("Reload failed: " + e);
+        }
     }
 
     private void handleToggle(CommandSender sender, String moduleName) {
@@ -155,7 +184,7 @@ public class OptimizeCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!hasPerm(sender)) return List.of();
         if (args.length == 1) {
-            return filter(Arrays.asList("status", "now", "toggle"), args[0]);
+            return filter(Arrays.asList("status", "now", "toggle", "reload"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("toggle")) {
             List<String> mods = new ArrayList<>();
