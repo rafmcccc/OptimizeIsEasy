@@ -10,12 +10,16 @@ repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://oss.sonatype.org/content/groups/public/")
+    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
+    maven("https://repo.placeholderapi.com/repository/maven-public/")
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("net.kyori:adventure-api:4.14.0")
     compileOnly("net.kyori:adventure-text-minimessage:4.14.0")
+    compileOnly("org.bstats:bstats-bukkit:3.1.0")
+    compileOnly("me.clip:placeholderapi:2.11.6")
 }
 
 java {
