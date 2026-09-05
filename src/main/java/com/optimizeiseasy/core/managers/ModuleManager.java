@@ -6,6 +6,7 @@ import com.optimizeiseasy.core.modules.*;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -57,6 +58,13 @@ public class ModuleManager {
         for (AbstractModule module : modules.values()) {
             try {
                 module.loadConfigSection();
+                List<String> errs = ConfigValidator.validateModule(module);
+                if (!errs.isEmpty()) {
+                    for (String e : errs) plugin.getLogger().warning("Config validator: " + e);
+                    // do not load if validation fails, keep disabled
+                    module.setLoaded(false);
+                    continue;
+                }
                 boolean enabled = module.isEnabledInConfig();
                 boolean success = true;
                 if (enabled) {
