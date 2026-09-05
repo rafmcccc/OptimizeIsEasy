@@ -100,8 +100,8 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
     public void load() {
         Bukkit.getPluginManager().registerEvents(this, plugin);
         SupportManager sm = SupportManager.getInstance();
-        if (sm != null) task = sm.getFork().runTimer(false, this, 60, 60, TimeUnit.SECONDS);
-        else task = Bukkit.getScheduler().runTaskTimer(plugin, this, 1200L, 1200L);
+        if (sm != null) task = sm.getFork().runTimer(false, this, 20, 20, TimeUnit.SECONDS);
+        else task = Bukkit.getScheduler().runTaskTimer(plugin, this, 400L, 400L);
     }
 
     @Override

@@ -6,7 +6,7 @@ WorldCleaner:
     - world_nether
   values:
     # Interval (in seconds) between WorldCleaner runs.
-    interval: 1200
+    interval: 600
 
     alerts:
       enabled: true

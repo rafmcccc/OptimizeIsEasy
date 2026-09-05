@@ -7,15 +7,15 @@ HopperOptimizer:
 
     # Enable chunk-based hopper limiting
     chunk_limit:
-      enabled: false
+      enabled: true
       # Maximum hoppers allowed per chunk
-      limit: 16
+      limit: 24
 
     # Optimizes hoppers that have nothing to transfer
     empty_hopper_optimization:
       enabled: true
       # How long to wait before checking empty hoppers again (milliseconds)
-      empty_check_delay: 100
+      empty_check_delay: 300
 
     # Optimizes hoppers that can't transfer because destination is full
     full_hopper_optimization:

@@ -15,11 +15,11 @@ EntityLimiter:
     # If "true" the limit won't apply to entities from ModelEngine or MythicMobs
     ignore_models: true
     # Animals and monsters per chunk (-1 to disable).
-    creatures: 15
+    creatures: 20
     # Dropped items per chunk (-1 to disable).
     items: -1
     # Minecarts and boats per chunk (-1 to disable).
-    vehicles: 3
+    vehicles: 5
     # Projectiles per chunk (-1 to disable).
     projectiles: 5
 
@@ -35,9 +35,9 @@ EntityLimiter:
 
     # The overflow purge limits the number of entities per chunk, removing excess ones to prevent server lag caused by players trying to overload chunks.
     overflow_purge:
-      enabled: false
+      enabled: true
       # An interval in seconds that defines how often the excess entities in a chunk will be removed (per cycle)
-      interval: 30
+      interval: 45
       # Limit multiplier to not remove too many mobs
       limit_multiplier: 1.5
       types:
