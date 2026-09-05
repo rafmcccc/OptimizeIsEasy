@@ -20,6 +20,12 @@ dependencies {
     compileOnly("net.kyori:adventure-text-minimessage:4.14.0")
     compileOnly("org.bstats:bstats-bukkit:3.1.0")
     compileOnly("me.clip:placeholderapi:2.11.6")
+
+    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.assertj:assertj-core:3.27.3")
 }
 
 java {
@@ -38,6 +44,10 @@ tasks.processResources {
     filesMatching("plugin.yml") {
         expand(mapOf("version" to project.version))
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {
