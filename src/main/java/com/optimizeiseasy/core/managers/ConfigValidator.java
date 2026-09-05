@@ -16,7 +16,6 @@ public class ConfigValidator {
         if (cfg.contains("hibernate.gc-on-freeze") && !(cfg.get("hibernate.gc-on-freeze") instanceof Boolean)) errs.add("hibernate.gc-on-freeze must be boolean");
         int ci = cfg.getInt("hibernate.check-interval-seconds", 60);
         if (ci < 0 || ci > 86400) errs.add("hibernate.check-interval-seconds out of range 0..86400");
-        if (cfg.contains("main.bStats") && !(cfg.get("main.bStats") instanceof Boolean)) errs.add("main.bStats must be boolean");
         if (cfg.contains("main.updater") && !(cfg.get("main.updater") instanceof Boolean)) errs.add("main.updater must be boolean");
         ConfigurationSection mon = cfg.getConfigurationSection("main.monitor.resource");
         if (mon != null) {

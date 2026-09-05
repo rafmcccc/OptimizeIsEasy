@@ -6,7 +6,6 @@ import com.optimizeiseasy.api.event.HibernateUnfreezeEvent;
 import com.optimizeiseasy.core.commands.ExploitFixCommand;
 import com.optimizeiseasy.core.commands.OptimizeCommand;
 import com.optimizeiseasy.core.gui.OptimizeGui;
-import com.optimizeiseasy.core.hooks.MetricsHook;
 import com.optimizeiseasy.core.hooks.PlaceholderHook;
 import com.optimizeiseasy.core.managers.ModuleManager;
 import com.optimizeiseasy.core.objects.AbstractModule;
@@ -24,7 +23,6 @@ import java.util.logging.Level;
 public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIsEasyAPI {
     private static OptimizeIsEasyPlugin instance;
     private ModuleManager moduleManager;
-    private MetricsHook metricsHook;
     private ExploitFixCommand exploitFixCommand;
     private OptimizeGui gui;
     private UpdateChecker updateChecker;
@@ -68,9 +66,6 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
         }
 
         // Soft hooks - no hard dep, safe if missing
-        if (getConfig().getBoolean("main.bStats", true)) {
-            try { metricsHook = new MetricsHook(this); } catch (Throwable t) { getLogger().fine("Metrics init failed: " + t.getMessage()); }
-        }
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             try { new PlaceholderHook(this).register(); getLogger().fine("PlaceholderAPI hook registered"); } catch (Throwable t) { getLogger().fine("PAPI hook failed: " + t.getMessage()); }
         }
@@ -99,7 +94,6 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
     public void onDisable() {
         if (exploitFixCommand != null) try { exploitFixCommand.saveFrozen(); } catch (Throwable ignored) {}
         if (moduleManager != null) moduleManager.disableAll();
-        if (metricsHook != null) try { metricsHook.shutdown(); } catch (Throwable ignored) {}
         getLogger().info("OptimizeIsEasy disabled");
     }
 

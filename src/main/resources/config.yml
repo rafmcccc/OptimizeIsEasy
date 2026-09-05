@@ -30,4 +30,3 @@ main:
   errors_reporter: false
   updater: false
   warnings: false
-  bStats: true
