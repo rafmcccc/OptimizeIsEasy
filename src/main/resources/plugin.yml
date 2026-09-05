@@ -6,10 +6,11 @@ author: rafmcccc
 description: Merged performance and hibernation plugin.
 website: https://github.com/rafmcccc/OptimizeIsEasy
 folia-supported: true
+softdepend: [PlaceholderAPI]
 commands:
   optimize:
-    description: Performance controls - status, now, toggle.
-    usage: /optimize <status|now|toggle [module]>
+    description: Performance controls - status, now, toggle, reload.
+    usage: /optimize <status|now|toggle [module]|reload>
     permission: optimizeiseasy.optimize
   exploitfix:
     description: Security and protection controls - status, list, toggle, freeze.
