@@ -1,19 +1,27 @@
 package com.optimizeiseasy.core;
 
+import com.optimizeiseasy.api.OptimizeIsEasyAPI;
+import com.optimizeiseasy.api.event.HibernateFreezeEvent;
+import com.optimizeiseasy.api.event.HibernateUnfreezeEvent;
 import com.optimizeiseasy.core.commands.ExploitFixCommand;
 import com.optimizeiseasy.core.commands.OptimizeCommand;
 import com.optimizeiseasy.core.gui.OptimizeGui;
 import com.optimizeiseasy.core.hooks.MetricsHook;
 import com.optimizeiseasy.core.hooks.PlaceholderHook;
 import com.optimizeiseasy.core.managers.ModuleManager;
+import com.optimizeiseasy.core.objects.AbstractModule;
 import com.optimizeiseasy.core.support.SupportManager;
 import com.optimizeiseasy.core.utils.UpdateChecker;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Collection;
 import java.util.logging.Level;
 
-public final class OptimizeIsEasyPlugin extends JavaPlugin {
+public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIsEasyAPI {
     private static OptimizeIsEasyPlugin instance;
     private ModuleManager moduleManager;
     private MetricsHook metricsHook;
@@ -44,6 +52,8 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin {
 
         moduleManager = new ModuleManager(this);
         moduleManager.loadAll();
+        // Register API
+        try { Bukkit.getServicesManager().register(OptimizeIsEasyAPI.class, this, this, ServicePriority.Normal); } catch (Throwable t) { getLogger().fine("API register failed: " + t.getMessage()); }
 
         // Register commands - only two allowed
         if (getCommand("optimize") != null) {
@@ -108,4 +118,39 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin {
             if (exploitFixCommand != null) try { exploitFixCommand.loadFrozen(); } catch (Throwable ignored) {}
         }
     }
+
+    // API implementation
+    @Override public Collection<AbstractModule> getModules() { return moduleManager != null ? moduleManager.getModules() : java.util.Collections.emptyList(); }
+    @Override public AbstractModule getModule(String name) { return moduleManager != null ? moduleManager.get(name) : null; }
+    @Override public boolean isModuleEnabled(String name) { var m = getModule(name); return m != null && m.isLoaded(); }
+    @Override public boolean toggleModule(String name) {
+        var m = getModule(name);
+        if (m == null) return false;
+        try {
+            if (m.isLoaded()) { m.disable(); m.setLoaded(false); m.getConfig().set(m.getName() + ".enabled", false); m.getConfig().save(new java.io.File(getDataFolder(), "modules/" + m.getName() + ".yml")); }
+            else { m.loadConfigSection(); if (m.loadConfig()) { m.load(); m.setLoaded(true); m.getConfig().set(m.getName() + ".enabled", true); m.getConfig().save(new java.io.File(getDataFolder(), "modules/" + m.getName() + ".yml")); } }
+            Bukkit.getPluginManager().callEvent(new com.optimizeiseasy.api.event.ModuleEnableEvent(m));
+            return true;
+        } catch (Exception e) { getLogger().warning("API toggle failed for " + name + ": " + e.getMessage()); return false; }
+    }
+    @Override public boolean isFrozen() { var hm = moduleManager != null ? moduleManager.get(com.optimizeiseasy.core.modules.HibernateModule.class) : null; return hm != null && hm.isFrozen(); }
+    @Override public void setFrozen(boolean frozen) {
+        var hm = moduleManager != null ? moduleManager.get(com.optimizeiseasy.core.modules.HibernateModule.class) : null;
+        if (hm == null) return;
+        if (frozen) {
+            var ev = new HibernateFreezeEvent("API");
+            Bukkit.getPluginManager().callEvent(ev);
+            if (!ev.isCancelled()) hm.freeze("API freeze");
+        } else {
+            var ev = new HibernateUnfreezeEvent("API");
+            Bukkit.getPluginManager().callEvent(ev);
+            if (!ev.isCancelled()) hm.unfreeze("API unfreeze");
+        }
+    }
+    @Override public boolean isFoliaSupported() { var sm = SupportManager.getInstance(); return sm != null && sm.isFolia(); }
+    @Override public double getMspt() { var sm = SupportManager.getInstance(); return sm != null ? sm.getMspt() : 0; }
+    @Override public boolean canOptimizeWorld(World world) { var m = getModule("WorldCleaner"); return m != null && m.canContinue(world); }
+    @Override public void freezePlayer(Player player) { if (exploitFixCommand != null) { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "exploitfix freeze " + player.getName()); } }
+    @Override public void unfreezePlayer(Player player) { if (exploitFixCommand != null) { if (isPlayerFrozen(player)) Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "exploitfix freeze " + player.getName()); } }
+    @Override public boolean isPlayerFrozen(Player player) { return exploitFixCommand != null && player != null && exploitFixCommand.isFrozen(player.getUniqueId()); }
 }
