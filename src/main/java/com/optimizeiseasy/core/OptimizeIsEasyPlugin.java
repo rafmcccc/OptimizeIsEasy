@@ -2,8 +2,11 @@ package com.optimizeiseasy.core;
 
 import com.optimizeiseasy.core.commands.ExploitFixCommand;
 import com.optimizeiseasy.core.commands.OptimizeCommand;
+import com.optimizeiseasy.core.hooks.MetricsHook;
+import com.optimizeiseasy.core.hooks.PlaceholderHook;
 import com.optimizeiseasy.core.managers.ModuleManager;
 import com.optimizeiseasy.core.support.SupportManager;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Level;
@@ -11,6 +14,7 @@ import java.util.logging.Level;
 public final class OptimizeIsEasyPlugin extends JavaPlugin {
     private static OptimizeIsEasyPlugin instance;
     private ModuleManager moduleManager;
+    private MetricsHook metricsHook;
     private boolean debug;
 
     public static OptimizeIsEasyPlugin getInstance() { return instance; }
@@ -46,12 +50,21 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin {
             getCommand("exploitfix").setTabCompleter(cmd);
         }
 
+        // Soft hooks - no hard dep, safe if missing
+        if (getConfig().getBoolean("main.bStats", true)) {
+            try { metricsHook = new MetricsHook(this); } catch (Throwable t) { getLogger().fine("Metrics init failed: " + t.getMessage()); }
+        }
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            try { new PlaceholderHook(this).register(); getLogger().fine("PlaceholderAPI hook registered"); } catch (Throwable t) { getLogger().fine("PAPI hook failed: " + t.getMessage()); }
+        }
+
         getLogger().info("OptimizeIsEasy enabled");
     }
 
     @Override
     public void onDisable() {
         if (moduleManager != null) moduleManager.disableAll();
+        if (metricsHook != null) try { metricsHook.shutdown(); } catch (Throwable ignored) {}
         getLogger().info("OptimizeIsEasy disabled");
     }
 
