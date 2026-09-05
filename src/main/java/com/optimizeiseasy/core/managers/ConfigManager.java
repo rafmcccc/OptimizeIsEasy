@@ -16,6 +16,23 @@ public class ConfigManager {
         // Ensure parent dirs
         if (file.getParentFile() != null) file.getParentFile().mkdirs();
 
+        // Migration and backup: if file exists and config-version mismatched, backup
+        if (file.exists()) {
+            YamlConfiguration cur = YamlConfiguration.loadConfiguration(file);
+            int curVer = cur.getInt("config-version", 1);
+            int defVer = 1;
+            try (InputStream din = plugin.getResource(path)) {
+                if (din != null) {
+                    YamlConfiguration def = YamlConfiguration.loadConfiguration(new InputStreamReader(din, StandardCharsets.UTF_8));
+                    defVer = def.getInt("config-version", 1);
+                }
+            } catch (Exception ignored) {}
+            if (curVer < defVer) {
+                new BackupManager(plugin).backup(file);
+                plugin.getLogger().warning("Migrated " + path + " from v" + curVer + " to v" + defVer);
+            }
+        }
+
         // If file doesn't exist, copy from resource
         if (!file.exists()) {
             try (InputStream in = plugin.getResource(path)) {

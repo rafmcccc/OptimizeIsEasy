@@ -1,5 +1,6 @@
 # OptimizeIsEasy - merged config
 # Set debug to true to enable fine logging (off by default)
+config-version: 2
 debug: false
 
 # Hibernate - freezes server ticks when empty
