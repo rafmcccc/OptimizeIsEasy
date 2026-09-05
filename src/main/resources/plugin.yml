@@ -1,0 +1,30 @@
+name: OptimizeIsEasy
+version: '${version}'
+main: com.optimizeiseasy.core.OptimizeIsEasyPlugin
+api-version: '1.21'
+author: rafmcccc
+description: Merged performance and hibernation plugin.
+website: https://github.com/rafmcccc/OptimizeIsEasy
+folia-supported: true
+commands:
+  optimize:
+    description: Performance controls - status, now, toggle.
+    usage: /optimize <status|now|toggle [module]>
+    permission: optimizeiseasy.optimize
+  exploitfix:
+    description: Security and protection controls - status, list, toggle, freeze.
+    usage: /exploitfix <status|list|toggle <name>|freeze <player>>
+    permission: optimizeiseasy.exploitfix
+permissions:
+  optimizeiseasy.optimize:
+    description: Allows use of /optimize
+    default: op
+  optimizeiseasy.exploitfix:
+    description: Allows use of /exploitfix
+    default: op
+  rafmc.optimize:
+    description: Alias for optimizeiseasy.optimize
+    default: op
+  rafmc.exploitfix:
+    description: Alias for optimizeiseasy.exploitfix
+    default: op

@@ -1,0 +1,32 @@
+# OptimizeIsEasy - merged config
+# Set debug to true to enable fine logging (off by default)
+debug: false
+
+# Hibernate - freezes server ticks when empty
+hibernate:
+  # Run System.gc() after freezing to reclaim memory
+  gc-on-freeze: true
+  # Seconds between checks that re-freeze the server if manually unfrozen while empty (0=disable)
+  check-interval-seconds: 60
+  messages:
+    frozen-on-empty: "Last player disconnected. Server is now frozen."
+
+# Main
+main:
+  prefix: "&8[&a&l✓&8] "
+  prefix_hover: false
+  config_formatter: true
+  monitor:
+    resource:
+      enabled: true
+      interval: 5
+    worlds:
+      enabled: true
+      interval: 30
+    map:
+      enabled: false
+      interval: 3
+  errors_reporter: false
+  updater: false
+  warnings: false
+  bStats: true
