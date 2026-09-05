@@ -16,8 +16,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("net.kyori:adventure-api:4.14.0")
-    compileOnly("net.kyori:adventure-text-minimessage:4.14.0")
+    compileOnly("net.kyori:adventure-api:5.2.0")
+    compileOnly("net.kyori:adventure-text-minimessage:5.2.0")
     compileOnly("me.clip:placeholderapi:2.11.6")
 
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
