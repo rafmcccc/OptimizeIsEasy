@@ -42,7 +42,9 @@ public class OptimizeCommand implements TabExecutor {
             case "now" -> handleNow(sender);
             case "toggle" -> handleToggle(sender, args.length > 1 ? args[1] : null);
             case "reload" -> handleReload(sender);
-            default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle|reload>");
+            case "gui", "menu" -> handleGui(sender);
+            case "version", "ver", "v" -> handleVersion(sender);
+            default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle|reload|gui|version>");
         }
         return true;
     }
@@ -101,9 +103,7 @@ public class OptimizeCommand implements TabExecutor {
         long start = System.currentTimeMillis();
         sender.sendMessage("§7Reloading OptimizeIsEasy...");
         try {
-            // Validate main config before reload
             plugin.reload();
-            // Validate each module config
             int ok = 0, failed = 0;
             for (AbstractModule m : plugin.getModuleManager().getModules()) {
                 try {
@@ -123,6 +123,35 @@ public class OptimizeCommand implements TabExecutor {
             sender.sendMessage("§cReload failed: " + e.getMessage());
             plugin.getLogger().warning("Reload failed: " + e);
         }
+    }
+
+    private void handleGui(CommandSender sender) {
+        if (!(sender instanceof Player p)) {
+            sender.sendMessage("§7Only players can open the GUI.");
+            return;
+        }
+        if (plugin.getGui() == null) {
+            sender.sendMessage("§cGUI not available.");
+            return;
+        }
+        plugin.getGui().open(p);
+    }
+
+    private void handleVersion(CommandSender sender) {
+        String ver = plugin.getDescription().getVersion();
+        String paper = Bukkit.getVersion();
+        String fork = "Paper";
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            fork = "Folia";
+        } catch (Throwable t) {
+            try { Class.forName("org.purpurmc.purpur.PurpurConfig"); fork = "Purpur"; } catch (Throwable ignored) {}
+        }
+        sender.sendMessage("§aOptimizeIsEasy §7" + ver + " §8- §fPaper " + paper.split("-")[0] + " §8(" + fork + ")");
+        String latest = plugin.getUpdateChecker() != null ? plugin.getUpdateChecker().getLatest() : null;
+        if (latest != null && !latest.equals(ver)) sender.sendMessage("§eUpdate available: §f" + ver + " -> " + latest);
+        else if (latest != null) sender.sendMessage("§7You are up to date.");
+        else sender.sendMessage("§7Use §f/optimize reload §7to reload configs.");
     }
 
     private void handleToggle(CommandSender sender, String moduleName) {
@@ -184,7 +213,7 @@ public class OptimizeCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!hasPerm(sender)) return List.of();
         if (args.length == 1) {
-            return filter(Arrays.asList("status", "now", "toggle", "reload"), args[0]);
+            return filter(Arrays.asList("status", "now", "toggle", "reload", "gui", "version"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("toggle")) {
             List<String> mods = new ArrayList<>();
