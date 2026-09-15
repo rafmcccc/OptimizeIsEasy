@@ -1,0 +1,215 @@
+#
+# OptimizeIsEasy first-party profile.
+# Balanced: middle ground between YouHaveTrouble (aggressive) and FarmFriendly (permissive).
+#
+
+# Profile information
+meta:
+  description: Balanced optimisation, stricter than FarmFriendly but safer than YouHaveTrouble.
+  author: OptimizeIsEasy
+
+# Server Settings
+server:
+  network-compression-threshold: 256
+  distance:
+    view: 8
+    simulation: 4
+  sync-chunk-writes: false
+  allow-flight: true
+
+# CraftBukkit Settings
+craftbukkit:
+  spawn-limits:
+    monsters: 40
+    animals: 8
+    axolotls: 4
+    ambient: 2
+    water:
+      animals: 4
+      ambient: 4
+      underground-creature: 4
+  ticks-per:
+    monsters: 5
+    animals: 400
+    axolotls: 200
+    ambient: 200
+    water:
+      animals: 200
+      ambient: 200
+      underground-creature: 200
+  chunk-gc-period-in-ticks: 400
+
+# Spigot Settings
+spigot:
+  view-distance: default
+  mob-spawn-range: 5
+  entities:
+    activation-range:
+      animals: 24
+      monsters: 28
+      raiders: 56
+      misc: 12
+      water: 12
+      villagers: 24
+      flying: 40
+    tracking-range:
+      players: 64
+      animals: 64
+      monsters: 64
+      misc: 48
+      other: 64
+    tick-inactive-villagers: true
+    spawner-mobs-nerfed: true
+  hopper:
+    transfer: 8
+    check: 8
+
+# Paper Settings
+paper:
+  chunks:
+    delay-unloads: 10
+    max-autosave-per-tick: 8
+    prevent-moving-into-unloaded: true
+    entity-save-limit:
+      area-effect-cloud: 8
+      arrow: 16
+      dragon-fireball: 3
+      egg: 8
+      ender-pearl: 8
+      experience-bottle: 3
+      experience-orb: 16
+      eye-of-ender: 8
+      fireball: 8
+      llama-spit: 3
+      potion: 8
+      shulker-bullet: 8
+      small-fireball: 8
+      snowball: 8
+      spectral-arrow: 16
+      trident: 16
+      wither-skull: 4
+  despawn-ranges:
+    ambient:
+      hard: 96
+      soft: 40
+    axolotl:
+      hard: 96
+      soft: 40
+    creature:
+      hard: 96
+      soft: 40
+    misc:
+      hard: 96
+      soft: 40
+    monster:
+      hard: 96
+      soft: 40
+    water:
+      underground-creature:
+        hard: 96
+        soft: 40
+      ambient:
+        hard: 96
+        soft: 40
+      creature:
+        hard: 96
+        soft: 40
+  despawn-time:
+    llama-spit: 1200
+    snowball: 1200
+    fireball: 1200
+    dragon-fireball: 1200
+    small-fireball: 1200
+    arrow: 3000
+    shulker-bullet: 3000
+    wither-skull: 3000
+    trident: 3000
+  per-player-mob-spawns: true
+  max-entity-collisions: 4
+  update-pathfinding-on-block-update: false
+  fix-climbing-bypass-cramming-rule: true
+  armor-stands:
+    tick: false
+    do-collision-entity-lookups: false
+  nerfed-spawner-mobs-can-jump: false
+  tick-rates:
+    villager:
+      behaviour:
+        nearby-poi: 30
+        acquire-poi: 60
+      sensor:
+        secondary-poi: 60
+        nearest-bed: 60
+        villager-babies: 40
+        player: 40
+        nearest-living-entity: 40
+    mob-spawner: 2
+    grass-spread: 4
+    container-update: 2
+  optimised-despawn:
+    enabled: true
+    cobblestone: 300
+    netherrack: 300
+    sand: 300
+    red-sand: 300
+    gravel: 300
+    dirt: 300
+    short-grass: 300
+    pumpkin: 300
+    melon-slice: 300
+    kelp: 300
+    bamboo: 300
+    sugar-cane: 300
+    twisting-vines: 300
+    weeping-vines: 300
+    oak-leaves: 300
+    spruce-leaves: 300
+    birch-leaves: 300
+    jungle-leaves: 300
+    acacia-leaves: 300
+    dark-oak-leaves: 300
+    mangrove-leaves: 300
+    cactus: 300
+    diorite: 300
+    granite: 300
+    andesite: 300
+    scaffolding: 300
+    arrow:
+      non-player: 20
+      creative: 20
+  redstone-implementation: ALTERNATE_CURRENT
+  hoppers:
+    ignore-occluding-blocks: true
+  optimise-explosions: true
+  find-already-discovered-loot-tables: false
+  find-already-discovered-villager-trade: false
+  xp-orb-groups-per-area: 40
+
+# Purpur Settings
+purpur:
+  entities:
+    all:
+      can-use-portals: false
+    zombie:
+      aggressive-towards-villager-when-lagging: false
+    villager:
+      lobotomized: false
+      search-radius:
+        acquire-poi: 18
+        nearest-bed-sensor: 18
+  use-alternative-keepalive: true
+  teleport-if-outside-worldborder: true
+  lagging-tps-threshold: 19.0
+
+# Pufferfish Settings
+pufferfish:
+  max-loads-per-projectile: 8
+  entities:
+    dynamic-activation-of-brain:
+      enabled: true
+      max-tick-freq: 20
+      activation-distance-modifier: 7
+    async-mob-spawning: true
+    suffocation-optimisation: true
+    inactive-goal-selector-throttle: true
+  disable-method-profiler: true
