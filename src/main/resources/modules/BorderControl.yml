@@ -1,0 +1,8 @@
+BorderControl:
+  enabled: true
+  worlds:
+    - '*'
+  values:
+    # No extra tuning needed. Use /border or /optimize border to manage per-world WorldBorder.
+    # Size presets: 500 / 1000 / 5000 / 10000 / 50000 / 100000 / 1000000
+    gui-sounds: true
