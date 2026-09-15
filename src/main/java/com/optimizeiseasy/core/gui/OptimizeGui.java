@@ -44,20 +44,52 @@ public class OptimizeGui implements Listener {
         // Modules from slot 9
         int slot = 9;
         for (AbstractModule m : plugin.getModuleManager().getModules()) {
-            if (slot >= 54) break;
+            if (slot >= 45) break;
             if (m.getName().equalsIgnoreCase("Hibernate")) continue;
-            ItemStack is = new ItemStack(m.isLoaded() ? Material.LIME_WOOL : Material.RED_WOOL);
+            Material mat;
+            if (m.getName().equalsIgnoreCase("ServerTuner")) mat = m.isLoaded() ? Material.NETHERITE_PICKAXE : Material.WOODEN_PICKAXE;
+            else if (m.getName().equalsIgnoreCase("ExploitDB")) mat = m.isLoaded() ? Material.SHIELD : Material.ELYTRA;
+            else if (m.getName().equalsIgnoreCase("BorderControl")) mat = Material.FILLED_MAP;
+            else mat = m.isLoaded() ? Material.LIME_WOOL : Material.RED_WOOL;
+            ItemStack is = new ItemStack(mat);
             ItemMeta meta = is.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName((m.isLoaded() ? "§a" : "§c") + m.getName());
                 List<String> lore = new ArrayList<>();
                 lore.add(m.isLoaded() ? "§aEnabled" : "§cDisabled");
-                lore.add("§7Click to toggle");
+                if (m.getName().equalsIgnoreCase("BorderControl")) {
+                    lore.add("§eLeft-click: open Border GUI");
+                    lore.add("§7Right-click: toggle module");
+                } else if (m.getName().equalsIgnoreCase("ServerTuner")) {
+                    lore.add("§7KOS profiles: /optimize kos");
+                    lore.add("§7Click to toggle");
+                } else if (m.getName().equalsIgnoreCase("ExploitDB")) {
+                    lore.add("§7EDB check: /exploitfix check");
+                    lore.add("§7Click to toggle");
+                } else {
+                    lore.add("§7Click to toggle");
+                }
                 meta.setLore(lore);
                 is.setItemMeta(meta);
             }
             inv.setItem(slot++, is);
         }
+        ItemStack border = new ItemStack(Material.COMPASS);
+        ItemMeta bm = border.getItemMeta();
+        if (bm != null) {
+            bm.setDisplayName("§eBorder Manager");
+            bm.setLore(List.of("§7Open WorldBorder GUI", "§7/border or /optimize border"));
+            border.setItemMeta(bm);
+        }
+        inv.setItem(47, border);
+        ItemStack report = new ItemStack(Material.PAPER);
+        ItemMeta rm = report.getItemMeta();
+        if (rm != null) {
+            rm.setDisplayName("§eServer Report");
+            rm.setLore(List.of("§7Run /optimize report"));
+            report.setItemMeta(rm);
+        }
+        inv.setItem(48, report);
         // Info at slot 49
         ItemStack info = new ItemStack(Material.BOOK);
         ItemMeta im = info.getItemMeta();
@@ -90,11 +122,26 @@ public class OptimizeGui implements Listener {
             Bukkit.getScheduler().runTaskLater(plugin, () -> open(p), 5L);
             return;
         }
+        if (e.getSlot() == 47) {
+            p.closeInventory();
+            p.performCommand("optimize border");
+            return;
+        }
+        if (e.getSlot() == 48) {
+            p.closeInventory();
+            p.performCommand("optimize report");
+            return;
+        }
         // Module toggle
-        if (e.getSlot() >= 9 && e.getSlot() < 54) {
+        if (e.getSlot() >= 9 && e.getSlot() < 45) {
             if (clicked.getItemMeta() == null) return;
             String name = clicked.getItemMeta().getDisplayName().replace("§a", "").replace("§c", "");
             if (name.isBlank()) return;
+            if (name.equalsIgnoreCase("BorderControl") && !e.isRightClick()) {
+                p.closeInventory();
+                p.performCommand("optimize border");
+                return;
+            }
             p.performCommand("optimize toggle " + name);
             Bukkit.getScheduler().runTaskLater(plugin, () -> open(p), 5L);
         }
