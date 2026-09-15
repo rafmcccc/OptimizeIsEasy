@@ -1,0 +1,9 @@
+ServerTuner:
+  enabled: true
+  worlds:
+    - '*'
+  values:
+    # If true, treasure-map / dolphin protections can be overridden even when world is not pregenerated.
+    allow-override-pregenerated: false
+    # Default profile when running /optimize kos without args
+    default-profile: YouHaveTrouble.kos
