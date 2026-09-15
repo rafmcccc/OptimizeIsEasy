@@ -231,13 +231,25 @@ public class OptimizeCommand implements TabExecutor {
             return;
         }
         if (args.length == 1) {
+            String def = plugin.getConfig().getString("kos.default-profile", "YouHaveTrouble.kos");
             sender.sendMessage("§7Available profiles: §f" + String.join(", ", tuner.listProfiles()));
-            sender.sendMessage("§7Usage: §f/optimize kos <profile> <true|false-pregenerated>");
+            sender.sendMessage("§7Default: §f" + def);
+            Boolean known = storedPregen();
+            if (known != null) {
+                tuner.runProfile(def, known, sender);
+            } else {
+                sender.sendMessage("§7Usage: §f/optimize kos <profile> <true|false-pregenerated>");
+            }
             return;
         }
         String profile = args[1];
         if (args.length == 2) {
-            sender.sendMessage("§7Is your world pre-generated? §f/optimize kos " + profile + " <true|false>");
+            Boolean known = storedPregen();
+            if (known != null) {
+                tuner.runProfile(profile, known, sender);
+            } else {
+                sender.sendMessage("§7Is your world pre-generated? §f/optimize kos " + profile + " <true|false>");
+            }
             return;
         }
         String flag = args[2].toLowerCase();
@@ -249,6 +261,13 @@ public class OptimizeCommand implements TabExecutor {
             return;
         }
         tuner.runProfile(profile, pregen, sender);
+    }
+
+    private Boolean storedPregen() {
+        int v = plugin.getConfig().getInt("kos.world-is-pregenerated", 0);
+        if (v == 1) return true;
+        if (v == 2) return false;
+        return null;
     }
 
     private void handleEdb(CommandSender sender, String[] args) {
