@@ -1,10 +1,14 @@
 package com.optimizeiseasy.core.commands;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
+import com.optimizeiseasy.core.modules.BorderControlModule;
+import com.optimizeiseasy.core.modules.ExploitDBModule;
 import com.optimizeiseasy.core.modules.HibernateModule;
+import com.optimizeiseasy.core.modules.ServerTunerModule;
 import com.optimizeiseasy.core.modules.WorldCleanerModule;
 import com.optimizeiseasy.core.objects.AbstractModule;
 import com.optimizeiseasy.core.support.SupportManager;
+import com.optimizeiseasy.core.utils.ServerReport;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -33,7 +37,7 @@ public class OptimizeCommand implements TabExecutor {
             return true;
         }
         if (args.length == 0) {
-            sender.sendMessage("§7Usage: §f/optimize <status|now|toggle [module]>");
+            sender.sendMessage("§7Usage: §f/optimize <status|now|toggle [module]|reload|gui|version|kos|edb|border|report>");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -44,7 +48,11 @@ public class OptimizeCommand implements TabExecutor {
             case "reload" -> handleReload(sender);
             case "gui", "menu" -> handleGui(sender);
             case "version", "ver", "v" -> handleVersion(sender);
-            default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle|reload|gui|version>");
+            case "kos" -> handleKos(sender, args);
+            case "edb" -> handleEdb(sender, args);
+            case "border" -> handleBorder(sender, args);
+            case "report" -> new ServerReport(plugin).run(sender);
+            default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle|reload|gui|version|kos|edb|border|report>");
         }
         return true;
     }
@@ -74,6 +82,13 @@ public class OptimizeCommand implements TabExecutor {
         if (hm != null) {
             WorldCleanerModule wc = plugin.getModuleManager().get(WorldCleanerModule.class);
             if (wc != null && wc.isLoaded()) sender.sendMessage(" §8• §fNext purge: §e" + wc.getInterval() + "s");
+        }
+        if (plugin.isRestartRequired()) sender.sendMessage(" §8• §cRestart required §7- KOS/EDB patches pending");
+        if (plugin.getSoftwareDetector() != null) sender.sendMessage(" §8• §fConfigs: §e" + plugin.getSoftwareDetector().describe());
+        ExploitDBModule edb = plugin.getModuleManager().get(ExploitDBModule.class);
+        if (edb != null && edb.isLoaded()) {
+            long failed = edb.checkAll().values().stream().filter(b -> !b).count();
+            if (failed > 0) sender.sendMessage(" §8• §fExploitDB: §c" + failed + " checks failing §8(§7/optimize edb check§8)");
         }
     }
 
@@ -209,17 +224,106 @@ public class OptimizeCommand implements TabExecutor {
         }
     }
 
+    private void handleKos(CommandSender sender, String[] args) {
+        ServerTunerModule tuner = plugin.getModuleManager().get(ServerTunerModule.class);
+        if (tuner == null || !tuner.isLoaded()) {
+            sender.sendMessage("§cServerTuner module is disabled. Enable it with /optimize toggle ServerTuner.");
+            return;
+        }
+        if (args.length == 1) {
+            sender.sendMessage("§7Available profiles: §f" + String.join(", ", tuner.listProfiles()));
+            sender.sendMessage("§7Usage: §f/optimize kos <profile> <true|false-pregenerated>");
+            return;
+        }
+        String profile = args[1];
+        if (args.length == 2) {
+            sender.sendMessage("§7Is your world pre-generated? §f/optimize kos " + profile + " <true|false>");
+            return;
+        }
+        String flag = args[2].toLowerCase();
+        boolean pregen;
+        if (flag.equals("true") || flag.equals("yes") || flag.equals("y")) pregen = true;
+        else if (flag.equals("false") || flag.equals("no") || flag.equals("n")) pregen = false;
+        else {
+            sender.sendMessage("§cUse true/false for pregenerated. Example: /optimize kos " + profile + " true");
+            return;
+        }
+        tuner.runProfile(profile, pregen, sender);
+    }
+
+    private void handleEdb(CommandSender sender, String[] args) {
+        ExploitDBModule edb = plugin.getModuleManager().get(ExploitDBModule.class);
+        if (edb == null || !edb.isLoaded()) {
+            sender.sendMessage("§cExploitDB module is disabled. Enable it with /optimize toggle ExploitDB.");
+            return;
+        }
+        if (args.length == 1 || (args.length >= 2 && args[1].equalsIgnoreCase("check"))) {
+            var res = edb.checkAll();
+            sender.sendMessage("§8§m    §r §c§lExploitDB §7Check §8§m    ");
+            for (var e : res.entrySet()) {
+                sender.sendMessage((e.getValue() ? " §a✔ " : " §c✘ ") + "§f" + e.getKey() + " §8- §7" + edb.describe(e.getKey()));
+            }
+            sender.sendMessage("§7Fix with §f/optimize edb patch <id|all>");
+            return;
+        }
+        if (args.length >= 2 && args[1].equalsIgnoreCase("patch")) {
+            if (args.length < 3) {
+                sender.sendMessage("§7Usage: §f/optimize edb patch <EDB-1..EDB-12|all>");
+                return;
+            }
+            String id = args[2];
+            if (id.equalsIgnoreCase("all")) {
+                edb.patchAll();
+                sender.sendMessage("§aPatched all applicable exploits. §cRestart required.");
+            } else {
+                boolean ok = edb.patch(id);
+                sender.sendMessage(ok ? "§aPatched §f" + id.toUpperCase() + "§a. §cRestart required." : "§cUnable to patch §f" + id + " §7(maybe unsupported software).");
+            }
+            return;
+        }
+        sender.sendMessage("§7Usage: §f/optimize edb <check|patch <id|all>>");
+    }
+
+    private void handleBorder(CommandSender sender, String[] args) {
+        BorderControlModule mod = plugin.getModuleManager().get(BorderControlModule.class);
+        if (mod == null || !mod.isLoaded()) {
+            sender.sendMessage("§cBorderControl module is disabled. Enable it with /optimize toggle BorderControl.");
+            return;
+        }
+        if (!(sender instanceof Player p)) {
+            sender.sendMessage("§7Border is per-world. In-game use §f/border §7or §f/optimize border§7. Worlds: "
+                    + Bukkit.getWorlds().stream().map(World::getName).reduce((a, b) -> a + ", " + b).orElse("none"));
+            return;
+        }
+        mod.openMainGUI(p);
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!hasPerm(sender)) return List.of();
         if (args.length == 1) {
-            return filter(Arrays.asList("status", "now", "toggle", "reload", "gui", "version"), args[0]);
+            return filter(Arrays.asList("status", "now", "toggle", "reload", "gui", "version", "kos", "edb", "border", "report"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("toggle")) {
             List<String> mods = new ArrayList<>();
             mods.add("hibernation");
             for (AbstractModule m : plugin.getModuleManager().getModules()) mods.add(m.getName());
             return filter(mods, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("kos")) {
+            ServerTunerModule tuner = plugin.getModuleManager().get(ServerTunerModule.class);
+            List<String> profiles = tuner != null ? tuner.listProfiles() : List.of("YouHaveTrouble.kos", "FarmFriendly.kos");
+            return filter(profiles, args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("kos")) {
+            return filter(Arrays.asList("true", "false"), args[2]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("edb")) {
+            return filter(Arrays.asList("check", "patch"), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("edb") && args[1].equalsIgnoreCase("patch")) {
+            List<String> ids = new ArrayList<>(Arrays.asList("all", "EDB-1", "EDB-2", "EDB-3", "EDB-4", "EDB-5", "EDB-6", "EDB-7", "EDB-8", "EDB-9", "EDB-10", "EDB-11", "EDB-12"));
+            return filter(ids, args[2]);
         }
         return List.of();
     }
