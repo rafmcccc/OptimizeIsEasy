@@ -9,19 +9,29 @@ folia-supported: true
 softdepend: [PlaceholderAPI]
 commands:
   optimize:
-    description: Performance controls - status, now, toggle, reload.
-    usage: /optimize <status|now|toggle [module]|reload>
+    description: Performance controls - status, now, toggle, reload, kos, edb, border, report.
+    usage: /optimize <status|now|toggle [module]|reload|kos|edb|border|report>
     permission: optimizeiseasy.optimize
   exploitfix:
-    description: Security and protection controls - status, list, toggle, freeze.
-    usage: /exploitfix <status|list|toggle <name>|freeze <player>>
+    description: Security and protection controls - status, list, toggle, freeze, check, patch.
+    usage: /exploitfix <status|list|toggle <name>|freeze <player>|check|patch <id|all>>
     permission: optimizeiseasy.exploitfix
+  border:
+    description: Opens the world-border configuration interface (BorderControl module).
+    usage: /border
+    permission: optimizeiseasy.border
 permissions:
   optimizeiseasy.optimize:
     description: Allows use of /optimize
     default: op
   optimizeiseasy.exploitfix:
     description: Allows use of /exploitfix
+    default: op
+  optimizeiseasy.border:
+    description: Allows use of /border
+    default: op
+  border.admin:
+    description: Legacy alias for optimizeiseasy.border
     default: op
   rafmc.optimize:
     description: Alias for optimizeiseasy.optimize
