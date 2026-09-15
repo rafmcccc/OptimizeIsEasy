@@ -13,8 +13,8 @@ commands:
     usage: /optimize <status|now|toggle [module]|reload|kos|edb|border|report>
     permission: optimizeiseasy.optimize
   exploitfix:
-    description: Security and protection controls - status, list, toggle, freeze, check, patch.
-    usage: /exploitfix <status|list|toggle <name>|freeze <player>|check|patch <id|all>>
+    description: Security and protection controls - status, list, toggle, check, patch.
+    usage: /exploitfix <status|list|toggle <name>|check|patch <id|all>>
     permission: optimizeiseasy.exploitfix
   border:
     description: Opens the world-border configuration interface (BorderControl module).

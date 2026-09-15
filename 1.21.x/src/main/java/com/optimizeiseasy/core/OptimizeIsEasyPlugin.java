@@ -17,7 +17,6 @@ import com.optimizeiseasy.core.utils.SoftwareDetector;
 import com.optimizeiseasy.core.utils.UpdateChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -110,7 +109,6 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
 
     @Override
     public void onDisable() {
-        if (exploitFixCommand != null) try { exploitFixCommand.saveFrozen(); } catch (Throwable ignored) {}
         if (moduleManager != null) moduleManager.disableAll();
         getLogger().info("OptimizeIsEasy disabled");
     }
@@ -123,11 +121,8 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
         debug = getConfig().getBoolean("debug", false);
         getLogger().setLevel(debug ? Level.FINE : Level.INFO);
         if (moduleManager != null) {
-            // Save frozen before reload
-            if (exploitFixCommand != null) try { exploitFixCommand.saveFrozen(); } catch (Throwable ignored) {}
             moduleManager.disableAll();
             moduleManager.loadAll();
-            if (exploitFixCommand != null) try { exploitFixCommand.loadFrozen(); } catch (Throwable ignored) {}
         }
     }
 
@@ -162,7 +157,4 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
     @Override public boolean isFoliaSupported() { var sm = SupportManager.getInstance(); return sm != null && sm.isFolia(); }
     @Override public double getMspt() { var sm = SupportManager.getInstance(); return sm != null ? sm.getMspt() : 0; }
     @Override public boolean canOptimizeWorld(World world) { var m = getModule("WorldCleaner"); return m != null && m.canContinue(world); }
-    @Override public void freezePlayer(Player player) { if (exploitFixCommand != null) { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "exploitfix freeze " + player.getName()); } }
-    @Override public void unfreezePlayer(Player player) { if (exploitFixCommand != null) { if (isPlayerFrozen(player)) Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "exploitfix freeze " + player.getName()); } }
-    @Override public boolean isPlayerFrozen(Player player) { return exploitFixCommand != null && player != null && exploitFixCommand.isFrozen(player.getUniqueId()); }
 }

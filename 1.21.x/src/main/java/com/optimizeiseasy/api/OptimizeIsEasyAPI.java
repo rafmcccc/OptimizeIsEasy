@@ -2,7 +2,6 @@ package com.optimizeiseasy.api;
 
 import com.optimizeiseasy.core.objects.AbstractModule;
 import org.bukkit.World;
-import org.bukkit.entity.Player;
 
 import java.util.Collection;
 
@@ -16,7 +15,4 @@ public interface OptimizeIsEasyAPI {
     boolean isFoliaSupported();
     double getMspt();
     boolean canOptimizeWorld(World world);
-    void freezePlayer(Player player);
-    void unfreezePlayer(Player player);
-    boolean isPlayerFrozen(Player player);
 }

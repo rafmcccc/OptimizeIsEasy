@@ -72,23 +72,16 @@ messages:
 
   ExploitFix:
     no_permission: "<gray>Missing permission: <yellow>optimizeiseasy.exploitfix"
-    usage: "<gray>Usage: <white>/exploitfix <status|list|toggle <name>|freeze <player>>"
+    usage: "<gray>Usage: <white>/exploitfix <status|list|toggle <name>|check|patch <id|all>>"
     status_header: "<dark_gray>---- <red>ExploitFix Status</red> <dark_gray>----"
     active: "<gray>Active protections: <yellow><count>"
     hibernation: "<gray>Hibernation: <yellow><state>"
-    frozen_players: "<gray>Frozen players: <yellow><count>"
-    list_header: "<dark_gray>---- <red>Patched Exploits</red> <dark_gray>----"
+    list_header: "<dark_gray>---- <red>Exploit Database</red> <dark_gray>----"
     unknown_patch: "<red>Unknown patch: <yellow><name>"
     try_list: "<gray>Try: <white><list>"
     disabled_patch: "<red>Disabled <yellow><module>"
     enabled_patch: "<green>Enabled <yellow><module>"
     patch_failed: "<red>Failed to enable <yellow><module>"
-    player_notfound: "<red>Player not found: <yellow><player>"
-    unfroze: "<green>Unfroze <yellow><player>"
-    unfrozen_msg: "<green>You have been unfrozen."
-    froze: "<red>Froze <yellow><player> <gray>for investigation."
-    frozen_msg: "<red>You have been frozen for investigation. Do not log out."
-    frozen_block: "<red>You are frozen and cannot use commands."
 
   Version:
     line: "<gray>OptimizeIsEasy <yellow><version> <gray>by rafmcccc - Paper <paper> - <fork>"
