@@ -30,3 +30,9 @@ main:
   errors_reporter: false
   updater: false
   warnings: false
+
+# Server tuner
+kos:
+  override-pregenerated-world-protections: false
+  using-tcpshield: false
+  world-is-pregenerated: 0
