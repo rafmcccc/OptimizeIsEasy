@@ -16,7 +16,6 @@ public class ModuleManager {
 
     public ModuleManager(OptimizeIsEasyPlugin plugin) {
         this.plugin = plugin;
-        // Register all 14 modules (13 OptimizeIsEasy + 1 hibernate)
         add(new HibernateModule(plugin));
         add(new WorldCleanerModule(plugin));
         add(new EntityLimiterModule(plugin));
@@ -31,6 +30,9 @@ public class ModuleManager {
         add(new VehicleMotionReducerModule(plugin));
         add(new AbilityLimiterModule(plugin));
         add(new AFKOptimizerModule(plugin));
+        add(new ServerTunerModule(plugin));
+        add(new ExploitDBModule(plugin));
+        add(new BorderControlModule(plugin));
     }
 
     private void add(AbstractModule m) {
