@@ -5,11 +5,15 @@ import com.optimizeiseasy.api.event.HibernateFreezeEvent;
 import com.optimizeiseasy.api.event.HibernateUnfreezeEvent;
 import com.optimizeiseasy.core.commands.ExploitFixCommand;
 import com.optimizeiseasy.core.commands.OptimizeCommand;
+import com.optimizeiseasy.core.commands.BorderCommand;
 import com.optimizeiseasy.core.gui.OptimizeGui;
 import com.optimizeiseasy.core.hooks.PlaceholderHook;
+import com.optimizeiseasy.core.listeners.RestartAlertListener;
 import com.optimizeiseasy.core.managers.ModuleManager;
 import com.optimizeiseasy.core.objects.AbstractModule;
 import com.optimizeiseasy.core.support.SupportManager;
+import com.optimizeiseasy.core.utils.BadPluginDetector;
+import com.optimizeiseasy.core.utils.SoftwareDetector;
 import com.optimizeiseasy.core.utils.UpdateChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -27,12 +31,17 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
     private OptimizeGui gui;
     private UpdateChecker updateChecker;
     private boolean debug;
+    private SoftwareDetector softwareDetector;
+    private boolean restartRequired = false;
 
     public static OptimizeIsEasyPlugin getInstance() { return instance; }
     public ModuleManager getModuleManager() { return moduleManager; }
     public OptimizeGui getGui() { return gui; }
     public UpdateChecker getUpdateChecker() { return updateChecker; }
     public boolean isDebug() { return debug; }
+    public SoftwareDetector getSoftwareDetector() { return softwareDetector; }
+    public boolean isRestartRequired() { return restartRequired; }
+    public void setRestartRequired(boolean v) { this.restartRequired = v; }
 
     @Override
     public void onEnable() {
@@ -45,11 +54,12 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
         } else {
             getLogger().setLevel(Level.INFO);
         }
-        // Fork detection for Paper/Purpur/Folia support (1.21+)
         new SupportManager(this);
+        try { softwareDetector = new SoftwareDetector(this); } catch (Throwable t) { getLogger().fine("Software detect failed: " + t.getMessage()); }
 
         moduleManager = new ModuleManager(this);
         moduleManager.loadAll();
+        try { new BadPluginDetector(this).warnIfBad(); } catch (Throwable t) { getLogger().fine("BadPlugin check failed: " + t.getMessage()); }
         // Register API
         try { Bukkit.getServicesManager().register(OptimizeIsEasyAPI.class, this, this, ServicePriority.Normal); } catch (Throwable t) { getLogger().fine("API register failed: " + t.getMessage()); }
 
@@ -64,6 +74,13 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
             getCommand("exploitfix").setExecutor(exploitFixCommand);
             getCommand("exploitfix").setTabCompleter(exploitFixCommand);
         }
+        if (getCommand("border") != null) {
+            try {
+                BorderCommand bcmd = new BorderCommand(this);
+                getCommand("border").setExecutor(bcmd);
+                getCommand("border").setTabCompleter(bcmd);
+            } catch (Throwable t) { getLogger().fine("Border command init failed: " + t.getMessage()); }
+        }
 
         // Soft hooks - no hard dep, safe if missing
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
@@ -71,6 +88,7 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
         }
         // GUI and update checker
         try { gui = new OptimizeGui(this); } catch (Throwable t) { getLogger().fine("GUI init failed: " + t.getMessage()); }
+        try { Bukkit.getPluginManager().registerEvents(new RestartAlertListener(this), this); } catch (Throwable t) { getLogger().fine("RestartAlert init failed: " + t.getMessage()); }
         try {
             updateChecker = new UpdateChecker(this);
             updateChecker.checkAsync();
