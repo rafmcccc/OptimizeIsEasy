@@ -21,12 +21,15 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+        working-directory: 1.21.x
       - name: Run tests
         run: ./gradlew clean test --stacktrace
+        working-directory: 1.21.x
       - name: Build jar
         run: ./gradlew build
+        working-directory: 1.21.x
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: OptimizeIsEasy-jar
-          path: build/libs/OptimizeIsEasy-*.jar
+          path: 1.21.x/build/libs/OptimizeIsEasy-*.jar
