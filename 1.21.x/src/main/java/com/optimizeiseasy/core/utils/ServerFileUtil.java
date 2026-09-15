@@ -10,6 +10,14 @@ import java.util.Properties;
 public final class ServerFileUtil {
     private ServerFileUtil() {}
 
+    public static boolean exists(String path) {
+        try {
+            return new File(path).isFile();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static YamlConfiguration loadYaml(String path) {
         YamlConfiguration cfg = new YamlConfiguration();
         try {

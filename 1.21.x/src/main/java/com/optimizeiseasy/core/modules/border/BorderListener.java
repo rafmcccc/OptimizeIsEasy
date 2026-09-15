@@ -91,6 +91,12 @@ public class BorderListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         String title = event.getView().getTitle();
         if (!isBorderGUI(title)) return;
+        if (!player.hasPermission("optimizeiseasy.border") && !player.hasPermission("border.admin")
+                && !player.hasPermission("optimizeiseasy.optimize") && !player.isOp()) {
+            event.setCancelled(true);
+            player.closeInventory();
+            return;
+        }
         ItemStack clicked = event.getCurrentItem();
         if (clicked != null && clicked.getType() != Material.AIR && clicked.hasItemMeta()) {
             String rawName = clicked.getItemMeta().getDisplayName();
