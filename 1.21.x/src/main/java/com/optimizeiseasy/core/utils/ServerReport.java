@@ -54,12 +54,16 @@ public class ServerReport {
 
         ExploitDBModule edb = plugin.getModuleManager().get(ExploitDBModule.class);
         if (edb != null && edb.isLoaded()) {
-            var results = edb.checkAll();
-            long failed = results.values().stream().filter(b -> !b).count();
-            sender.sendMessage(" §8• §fExploitDB: §e" + (results.size() - failed) + "§a passed§8, §e" + failed + "§c failed §8(§7/exploitfix list§8)");
-            if (failed > 0 && plugin.isDebug()) {
-                for (var e : results.entrySet()) {
-                    if (!e.getValue()) sender.sendMessage(" §8- §c" + e.getKey() + " failed");
+            long safe = edb.countEnabled(ExploitDBModule.CheckResult.SAFE);
+            long vuln = edb.countEnabled(ExploitDBModule.CheckResult.VULNERABLE);
+            long nA = edb.countEnabled(ExploitDBModule.CheckResult.UNSUPPORTED);
+            sender.sendMessage(" §8• §fExploitDB: §e" + safe + "§a safe§8, §e" + vuln + "§c exploitable§8, §8" + nA + " n/a §8(§7/exploitfix list§8)");
+            if (edb.isDryRun()) sender.sendMessage(" §8• §cDry run: §7no exploit patch will be written");
+            if (vuln > 0 && plugin.isDebug()) {
+                for (String id : edb.allIds()) {
+                    if (edb.checkResult(id) == ExploitDBModule.CheckResult.VULNERABLE && edb.isEnabled(id)) {
+                        sender.sendMessage(" §8- §c" + id + " exploitable");
+                    }
                 }
             }
         }
@@ -67,6 +71,10 @@ public class ServerReport {
         ServerTunerModule tuner = plugin.getModuleManager().get(ServerTunerModule.class);
         if (tuner != null && tuner.isLoaded()) {
             sender.sendMessage(" §8• §fKOS profiles: §e" + String.join(", ", tuner.listProfiles()) + " §8(§7/optimize kos§8)");
+            if (!tuner.deniedProfiles().isEmpty()) {
+                sender.sendMessage(" §8• §fKOS denied: §8" + String.join(", ", tuner.deniedProfiles()));
+            }
+            if (tuner.isDryRun()) sender.sendMessage(" §8• §cDry run: §7no KOS profile will be written");
         }
 
         BorderControlModule border = plugin.getModuleManager().get(BorderControlModule.class);

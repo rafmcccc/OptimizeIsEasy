@@ -30,6 +30,16 @@ public class OptimizeCommand implements TabExecutor {
         return s.hasPermission("optimizeiseasy.optimize") || s.hasPermission("rafmc.optimize") || s.isOp();
     }
 
+    private boolean autoOpen() {
+        return plugin.getConfig().getBoolean("gui.auto-open", true);
+    }
+
+    private boolean requirePlayer(CommandSender sender) {
+        if (sender instanceof Player) return true;
+        sender.sendMessage("§7The GUI is in-game only. Console: §f/optimize status§7, §f/optimize edb check§7, §f/optimize kos <profile> <true|false>§7.");
+        return false;
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!hasPerm(sender)) {
@@ -37,7 +47,11 @@ public class OptimizeCommand implements TabExecutor {
             return true;
         }
         if (args.length == 0) {
-            sender.sendMessage("§7Usage: §f/optimize <status|now|toggle [module]|reload|gui|version|kos|edb|border|report>");
+            if (sender instanceof Player p && autoOpen()) {
+                handleGui(sender);
+                return true;
+            }
+            sender.sendMessage("§7Usage: §f/optimize <status|now|toggle [module]|reload|gui|krypton|version|kos|edb|border|report>");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -47,12 +61,13 @@ public class OptimizeCommand implements TabExecutor {
             case "toggle" -> handleToggle(sender, args.length > 1 ? args[1] : null);
             case "reload" -> handleReload(sender);
             case "gui", "menu" -> handleGui(sender);
+            case "krypton" -> handleKrypton(sender);
             case "version", "ver", "v" -> handleVersion(sender);
             case "kos" -> handleKos(sender, args);
             case "edb" -> handleEdb(sender, args);
             case "border" -> handleBorder(sender, args);
             case "report" -> new ServerReport(plugin).run(sender);
-            default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle|reload|gui|version|kos|edb|border|report>");
+            default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle|reload|gui|krypton|version|kos|edb|border|report>");
         }
         return true;
     }
@@ -87,7 +102,7 @@ public class OptimizeCommand implements TabExecutor {
         if (plugin.getSoftwareDetector() != null) sender.sendMessage(" §8• §fConfigs: §e" + plugin.getSoftwareDetector().describe());
         ExploitDBModule edb = plugin.getModuleManager().get(ExploitDBModule.class);
         if (edb != null && edb.isLoaded()) {
-            long failed = edb.checkAll().values().stream().filter(b -> !b).count();
+            long failed = edb.countEnabled(ExploitDBModule.CheckResult.VULNERABLE);
             if (failed > 0) sender.sendMessage(" §8• §fExploitDB: §c" + failed + " checks failing §8(§7/optimize edb check§8)");
         }
     }
@@ -141,15 +156,21 @@ public class OptimizeCommand implements TabExecutor {
     }
 
     private void handleGui(CommandSender sender) {
-        if (!(sender instanceof Player p)) {
-            sender.sendMessage("§7Only players can open the GUI.");
-            return;
-        }
+        if (!requirePlayer(sender)) return;
         if (plugin.getGui() == null) {
             sender.sendMessage("§cGUI not available.");
             return;
         }
-        plugin.getGui().open(p);
+        plugin.getGui().open((Player) sender);
+    }
+
+    private void handleKrypton(CommandSender sender) {
+        if (!requirePlayer(sender)) return;
+        if (plugin.getKryptonGui() == null) {
+            sender.sendMessage("§cKrypton GUI not available.");
+            return;
+        }
+        plugin.getKryptonGui().open((Player) sender);
     }
 
     private void handleVersion(CommandSender sender) {
@@ -225,16 +246,23 @@ public class OptimizeCommand implements TabExecutor {
     }
 
     private void handleKos(CommandSender sender, String[] args) {
+        if (args.length >= 2 && args[1].equalsIgnoreCase("gui")) {
+            handleKrypton(sender);
+            return;
+        }
         ServerTunerModule tuner = plugin.getModuleManager().get(ServerTunerModule.class);
         if (tuner == null || !tuner.isLoaded()) {
             sender.sendMessage("§cServerTuner module is disabled. Enable it with /optimize toggle ServerTuner.");
             return;
         }
         if (args.length == 1) {
-            String def = plugin.getConfig().getString("kos.default-profile", "YouHaveTrouble.kos");
+            String def = tuner.defaultProfile();
             sender.sendMessage("§7Available profiles: §f" + String.join(", ", tuner.listProfiles()));
             sender.sendMessage("§7Default: §f" + def);
-            Boolean known = storedPregen();
+            if (!tuner.deniedProfiles().isEmpty()) {
+                sender.sendMessage("§7Hidden by denied-profiles: §8" + String.join(", ", tuner.deniedProfiles()));
+            }
+            Boolean known = tuner.storedPregen();
             if (known != null) {
                 tuner.runProfile(def, known, sender);
             } else {
@@ -243,8 +271,8 @@ public class OptimizeCommand implements TabExecutor {
             return;
         }
         String profile = args[1];
+        Boolean known = tuner.storedPregen();
         if (args.length == 2) {
-            Boolean known = storedPregen();
             if (known != null) {
                 tuner.runProfile(profile, known, sender);
             } else {
@@ -263,44 +291,57 @@ public class OptimizeCommand implements TabExecutor {
         tuner.runProfile(profile, pregen, sender);
     }
 
-    private Boolean storedPregen() {
-        int v = plugin.getConfig().getInt("kos.world-is-pregenerated", 0);
-        if (v == 1) return true;
-        if (v == 2) return false;
-        return null;
-    }
-
     private void handleEdb(CommandSender sender, String[] args) {
+        if (args.length >= 2 && args[1].equalsIgnoreCase("gui")) {
+            handleEdbGui(sender);
+            return;
+        }
         ExploitDBModule edb = plugin.getModuleManager().get(ExploitDBModule.class);
         if (edb == null || !edb.isLoaded()) {
             sender.sendMessage("§cExploitDB module is disabled. Enable it with /optimize toggle ExploitDB.");
             return;
         }
         if (args.length == 1 || (args.length >= 2 && args[1].equalsIgnoreCase("check"))) {
-            var res = edb.checkAll();
+            var res = edb.checkDetailed();
             sender.sendMessage("§8§m    §r §c§lExploitDB §7Check §8§m    ");
             for (var e : res.entrySet()) {
-                sender.sendMessage((e.getValue() ? " §a✔ " : " §c✘ ") + "§f" + e.getKey() + " §8- §7" + edb.describe(e.getKey()));
+                if (!edb.isEnabled(e.getKey())) {
+                    sender.sendMessage(" §8✖ §8" + e.getKey() + " " + edb.describe(e.getKey()) + " §8- disabled in config");
+                    continue;
+                }
+                sender.sendMessage(switch (e.getValue()) {
+                    case SAFE -> " §a✔ ";
+                    case VULNERABLE -> " §c✘ ";
+                    case UNSUPPORTED -> " §8– ";
+                } + "§f" + e.getKey() + " §8- §7" + edb.describe(e.getKey()));
             }
             sender.sendMessage("§7Fix with §f/optimize edb patch <id|all>");
+            if (edb.isDryRun()) sender.sendMessage("§6Dry run is on in modules/ExploitDB.yml - patching writes nothing.");
             return;
         }
         if (args.length >= 2 && args[1].equalsIgnoreCase("patch")) {
             if (args.length < 3) {
-                sender.sendMessage("§7Usage: §f/optimize edb patch <EDB-1..EDB-12|all>");
+                sender.sendMessage("§7Usage: §f/optimize edb patch <EDB-1..EDB-" + edb.allIds().size() + "|all>");
                 return;
             }
             String id = args[2];
             if (id.equalsIgnoreCase("all")) {
-                edb.patchAll();
-                sender.sendMessage("§aPatched all applicable exploits. §cRestart required.");
+                edb.patchAll(sender);
             } else {
-                boolean ok = edb.patch(id);
-                sender.sendMessage(ok ? "§aPatched §f" + id.toUpperCase() + "§a. §cRestart required." : "§cUnable to patch §f" + id + " §7(maybe unsupported software).");
+                edb.patch(id, sender);
             }
             return;
         }
         sender.sendMessage("§7Usage: §f/optimize edb <check|patch <id|all>>");
+    }
+
+    private void handleEdbGui(CommandSender sender) {
+        if (!requirePlayer(sender)) return;
+        if (plugin.getEdbGui() == null) {
+            sender.sendMessage("§cExploitDB GUI not available.");
+            return;
+        }
+        plugin.getEdbGui().open((Player) sender);
     }
 
     private void handleBorder(CommandSender sender, String[] args) {
@@ -321,7 +362,7 @@ public class OptimizeCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!hasPerm(sender)) return List.of();
         if (args.length == 1) {
-            return filter(Arrays.asList("status", "now", "toggle", "reload", "gui", "version", "kos", "edb", "border", "report"), args[0]);
+            return filter(Arrays.asList("status", "now", "toggle", "reload", "gui", "krypton", "version", "kos", "edb", "border", "report"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("toggle")) {
             List<String> mods = new ArrayList<>();
@@ -330,18 +371,24 @@ public class OptimizeCommand implements TabExecutor {
             return filter(mods, args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("kos")) {
+            List<String> profiles = new ArrayList<>();
+            profiles.add("gui");
             ServerTunerModule tuner = plugin.getModuleManager().get(ServerTunerModule.class);
-            List<String> profiles = tuner != null ? tuner.listProfiles() : List.of("YouHaveTrouble.kos", "FarmFriendly.kos");
+            if (tuner != null) profiles.addAll(tuner.listProfiles());
+            else profiles.addAll(Arrays.asList("YouHaveTrouble.kos", "FarmFriendly.kos"));
             return filter(profiles, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("kos")) {
             return filter(Arrays.asList("true", "false"), args[2]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("edb")) {
-            return filter(Arrays.asList("check", "patch"), args[1]);
+            return filter(Arrays.asList("check", "patch", "gui"), args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("edb") && args[1].equalsIgnoreCase("patch")) {
-            List<String> ids = new ArrayList<>(Arrays.asList("all", "EDB-1", "EDB-2", "EDB-3", "EDB-4", "EDB-5", "EDB-6", "EDB-7", "EDB-8", "EDB-9", "EDB-10", "EDB-11", "EDB-12"));
+            List<String> ids = new ArrayList<>();
+            ids.add("all");
+            ExploitDBModule edb = plugin.getModuleManager().get(ExploitDBModule.class);
+            if (edb != null) ids.addAll(edb.allIds());
             return filter(ids, args[2]);
         }
         return List.of();

@@ -61,11 +61,11 @@ public class OptimizeGui implements Listener {
                     lore.add("§eLeft-click: open Border GUI");
                     lore.add("§7Right-click: toggle module");
                 } else if (m.getName().equalsIgnoreCase("ServerTuner")) {
-                    lore.add("§7KOS profiles: /optimize kos");
-                    lore.add("§7Click to toggle");
+                    lore.add("§eLeft-click: open Krypton GUI");
+                    lore.add("§7Right-click: toggle module");
                 } else if (m.getName().equalsIgnoreCase("ExploitDB")) {
-                    lore.add("§7EDB check: /exploitfix check");
-                    lore.add("§7Click to toggle");
+                    lore.add("§eLeft-click: open ExploitDB GUI");
+                    lore.add("§7Right-click: toggle module");
                 } else {
                     lore.add("§7Click to toggle");
                 }
@@ -74,6 +74,22 @@ public class OptimizeGui implements Listener {
             }
             inv.setItem(slot++, is);
         }
+        ItemStack krypton = new ItemStack(Material.NETHERITE_PICKAXE);
+        ItemMeta km = krypton.getItemMeta();
+        if (km != null) {
+            km.setDisplayName("§6Krypton (KOS)");
+            km.setLore(List.of("§7Open the ServerTuner GUI", "§7Pick a profile and apply it", "§7/optimize krypton"));
+            krypton.setItemMeta(km);
+        }
+        inv.setItem(45, krypton);
+        ItemStack edb = new ItemStack(Material.SHIELD);
+        ItemMeta em = edb.getItemMeta();
+        if (em != null) {
+            em.setDisplayName("§cExploitDB");
+            em.setLore(List.of("§7Open the ExploitDB GUI", "§7Check and patch server-file exploits", "§7/exploitfix or /exploitfix gui"));
+            edb.setItemMeta(em);
+        }
+        inv.setItem(46, edb);
         ItemStack border = new ItemStack(Material.COMPASS);
         ItemMeta bm = border.getItemMeta();
         if (bm != null) {
@@ -122,6 +138,16 @@ public class OptimizeGui implements Listener {
             Bukkit.getScheduler().runTaskLater(plugin, () -> open(p), 5L);
             return;
         }
+        if (e.getSlot() == 45) {
+            p.closeInventory();
+            p.performCommand("optimize krypton");
+            return;
+        }
+        if (e.getSlot() == 46) {
+            p.closeInventory();
+            p.performCommand("optimize edb gui");
+            return;
+        }
         if (e.getSlot() == 47) {
             p.closeInventory();
             p.performCommand("optimize border");
@@ -137,10 +163,22 @@ public class OptimizeGui implements Listener {
             if (clicked.getItemMeta() == null) return;
             String name = clicked.getItemMeta().getDisplayName().replace("§a", "").replace("§c", "");
             if (name.isBlank()) return;
-            if (name.equalsIgnoreCase("BorderControl") && !e.isRightClick()) {
-                p.closeInventory();
-                p.performCommand("optimize border");
-                return;
+            if (!e.isRightClick()) {
+                if (name.equalsIgnoreCase("BorderControl")) {
+                    p.closeInventory();
+                    p.performCommand("optimize border");
+                    return;
+                }
+                if (name.equalsIgnoreCase("ServerTuner")) {
+                    p.closeInventory();
+                    p.performCommand("optimize krypton");
+                    return;
+                }
+                if (name.equalsIgnoreCase("ExploitDB")) {
+                    p.closeInventory();
+                    p.performCommand("optimize edb gui");
+                    return;
+                }
             }
             p.performCommand("optimize toggle " + name);
             Bukkit.getScheduler().runTaskLater(plugin, () -> open(p), 5L);
