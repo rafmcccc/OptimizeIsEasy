@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.optimizeiseasy"
-version = "1.0.0"
+version = "2.0.0"
 
 repositories {
     mavenCentral()
@@ -41,6 +41,9 @@ tasks.withType<JavaCompile> {
 tasks.processResources {
     filteringCharset = "UTF-8"
     filesMatching("plugin.yml") {
+        expand(mapOf("version" to project.version))
+    }
+    filesMatching("profiles/*.kos") {
         expand(mapOf("version" to project.version))
     }
 }
