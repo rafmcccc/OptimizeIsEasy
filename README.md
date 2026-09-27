@@ -62,10 +62,10 @@ Caps TNT, creeper, crystal and fireball yield. Stops chain reactions from nuking
 Detects AFK by position or rotation. Kick, teleport to an AFK world, or just hide entities to save bandwidth. You choose.
 
 ### ServerTuner (KOS)
-Applies curated optimisation profiles to your server files. Four profiles ship with the jar: `YouHaveTrouble.kos`, `FarmFriendly.kos`, `Balanced.kos`, `LowEnd.kos`. Every write is type-checked, skipped keys are reported, and originals are backed up to `plugins/OptimizeIsEasy/backups/`.
+Applies curated optimisation profiles to your server files. Four profiles ship with the jar: `YouHaveTrouble.kos`, `FarmFriendly.kos`, `Balanced.kos`, `LowEnd.kos`. Every write is type-checked, skipped keys are reported, and originals are backed up to `plugins/OptimizeIsEasy/backups/`. Pick a profile in the Krypton GUI and hit apply, or run `dry-run` first to see the diff without writing. Hide profiles you never want with `denied-profiles`.
 
 ### ExploitDB (EDB)
-Checks and patches 12 known server-file exploits, from armour-stand lag machines to impersonation. See the table below. Restart required after patching.
+Checks and patches **22** known server-file exploits, from armour-stand lag machines to creative-slot NBT injection. See the table below. Restart required after patching. Patch straight from the GUI with a shift-click.
 
 ### BorderControl
 Full world-border manager with an in-game GUI. Size presets, center-to-player, timed shrink, damage and warning distance. Per world. Open with `/border`.
@@ -74,6 +74,25 @@ Full world-border manager with an in-game GUI. Size presets, center-to-player, t
 MobAiReducer, InstantLeafDecay, ConsoleFilter, TrashDisposal, VehicleMotionReducer, AbilityLimiter for elytra and trident spam. All toggleable. All with their own `modules/*.yml`.
 
 You get 17 modules. Enable what you need. Disable what you do not.
+
+---
+
+## GUIs
+
+Three native Bukkit menus, no inventory library in the way.
+
+| Menu | Open it with | What it does |
+|------|--------------|--------------|
+| **Modules** | `/optimize` or `/optimize gui` | Every module as a toggle. Bottom row holds Krypton, ExploitDB, Border, Report and version info. |
+| **Krypton (KOS)** | `/optimize krypton`, `/optimize kos gui`, or the pickaxe in the module list | Four profiles, a pre-generated yes/no picker, and an apply button. Profiles on `denied-profiles` are not listed. |
+| **ExploitDB** | `/exploitfix` (or `/exploit`), `/exploitfix gui`, or the shield in the module list | All 22 exploits, two pages, with re-check, patch all, restart flag and back. |
+| **Border** | `/border`, `/optimize border` | Size, center, shrink, damage, warning distance. |
+
+**Module list clicks.** Left-click toggles. For `ServerTuner`, `ExploitDB` and `BorderControl`, left-click opens that module's GUI instead and right-click toggles it.
+
+**ExploitDB clicks.** Left-click prints the details for that exploit in chat and changes nothing. **Shift-click is the only thing that writes to your server files.** Four item states: green already patched, red exploitable, grey not applicable to your server software, barrier disabled in config. EDB-12 stays locked while a BungeeCord or Velocity proxy is detected. EDB-12 and EDB-18 are on `patch-denylist` out of the box, so `patch all` will not touch either until you remove them from that list.
+
+`gui.auto-open: false` in config.yml makes bare `/optimize` and `/exploitfix` print usage text instead. Console always gets text, never a menu.
 
 ---
 
@@ -88,13 +107,27 @@ You get 17 modules. Enable what you need. Disable what you do not.
 | EDB-5 | Command spam | Clears spigot spam exclusions |
 | EDB-6 | Join spam | `max-joins-per-tick: 3` |
 | EDB-7 | Neighbor update lag machines | `max-chained-neighbor-updates: 10000` |
-| EDB-8 | Projectile suspension | Per-chunk save limit 8 for projectiles |
+| EDB-8 | Projectile suspension | Per-chunk save limit 8 for all 17 projectile types |
 | EDB-9 | Recipe book spam | Packet limiter DROP 4.0s / 5.0 rate |
 | EDB-10 | Nether roof access | Nether ceiling void damage at y=127 |
-| EDB-11 | Xray | Enables anti-xray |
-| EDB-12 | Impersonation | Forces `online-mode=true` — **never patch while behind a BungeeCord/Velocity proxy** (the plugin refuses and tells you why) |
+| EDB-11 | Xray | Enables anti-xray, clears exempt blocks, requires hidden blocks |
+| EDB-12 | Impersonation | Forces `online-mode=true` — **never patch while behind a BungeeCord/Velocity proxy** (refused, and on the patch denylist by default) |
+| EDB-13 | Chat spam | Packet limiter DROP 0.5s / 5.0 rate |
+| EDB-14 | Chat command spam | Packet limiter DROP 1.0s / 5.0 rate |
+| EDB-15 | Block entity NBT query spam | Packet limiter DROP 2.0s / 3.0 rate |
+| EDB-16 | Entity NBT query spam | Packet limiter DROP 2.0s / 3.0 rate |
+| EDB-17 | Jigsaw generation spam | Packet limiter DROP 5.0s / 3.0 rate |
+| EDB-18 | Plugin messaging flood | Packet limiter DROP 1.0s / 200.0 rate — **on the patch denylist by default**, many plugins rely on this channel |
+| EDB-19 | Creative slot NBT injection | Packet limiter DROP 1.0s / 10.0 rate — blocks NBT-injecting clients |
+| EDB-20 | Book edit spam | Packet limiter DROP 1.0s / 5.0 rate, complements EDB-2 |
+| EDB-21 | Vanilla rate limiter disabled | `rate-limit: 0` → 400 (vanilla ships 0, which means off) |
+| EDB-22 | Proxy bypass via direct connections | `prevent-proxy-connections: true` — only offered when a proxy is detected |
 
-Run `/exploitfix check` to audit, `/exploitfix patch <id|all>` to fix.
+Run `/exploitfix check` to audit, `/exploitfix patch <id|all>` to fix, or open the GUI and shift-click.
+
+**A note on duplication.** Item duplication is not a config problem and is not in this table. Rail, carpet, TNT and gravity dupers are mechanic-level, and detecting a dupe needs item-level tracking. If you need that, use a dedicated anti-dupe plugin. What EDB *does* cover on that front is the NBT injection route (EDB-19), the oversized-book NBT bomb (EDB-2, EDB-20) and the dupe-symptoms half of the story: entity and item flooding, capped by `EntityLimiter` and the projectile save limits in EDB-8.
+
+**Renamed keys are never invented.** If a config key a patch needs is absent from your server files, the patch is skipped and logged by name instead of writing a bogus key that would then report itself as fixed. That is what you see as *not applicable* rather than *vulnerable*.
 
 ---
 
@@ -115,6 +148,9 @@ We kept it lean on purpose.
 Permission `optimizeiseasy.optimize` (alias `rafmc.optimize`, default op)
 
 ```
+/optimize
+  Opens the module GUI for players. Console gets the usage line.
+
 /optimize status
   TPS, MSPT, entities, hibernation, modules, pending EDB failures
 
@@ -127,12 +163,15 @@ Permission `optimizeiseasy.optimize` (alias `rafmc.optimize`, default op)
 /optimize toggle <module>
   Toggles one module, like WorldCleaner or LagShield. Saves to modules/<module>.yml
 
+/optimize krypton
+  Opens the Krypton GUI. Same as /optimize kos gui.
+
 /optimize kos [profile] [true|false]
   Applies a ServerTuner profile to your server files. Backs up originals.
   Without args runs kos.default-profile when kos.world-is-pregenerated is set (1=yes, 2=no).
 
-/optimize edb <check|patch <id|all>>
-  Same checks and patches as /exploitfix.
+/optimize edb <check|patch <id|all>|gui>
+  Same checks and patches as /exploitfix. gui opens the ExploitDB GUI.
 
 /optimize border
   Opens the BorderControl GUI for your current world.
@@ -150,20 +189,27 @@ Tab completes subcommands, module names, profile names and EDB ids.
 Permission `optimizeiseasy.exploitfix` (alias `rafmc.exploitfix`, default op)
 
 ```
+/exploitfix
+  Opens the ExploitDB GUI for players. Console gets the usage line. Also aliased /exploit.
+
+/exploitfix gui
+  Opens the ExploitDB GUI.
+
 /exploitfix status
   Active protections, hibernation, EDB summary, restart flag
 
 /exploitfix list
-  The full EDB-1…EDB-12 table with live pass/fail state
+  The full EDB-1…EDB-22 table with live pass/fail state
 
 /exploitfix toggle <name>
   Enable or disable one module. Saves to file.
 
 /exploitfix check
-  Audit all 12 exploits
+  Audit all 22 exploits
 
 /exploitfix patch <id|all>
-  Patch and flag restart required
+  Patch and flag restart required. Honours enabled-exploits,
+  patch-allowlist and patch-denylist from modules/ExploitDB.yml
 ```
 
 ### /border - world border
@@ -221,9 +267,53 @@ main:
   errors_reporter: false
   updater: false
   warnings: false
+
+gui:
+  auto-open: true  # bare /optimize and /exploitfix open the GUI
 ```
 
 More settings live in `plugins/OptimizeIsEasy/modules/*.yml` (17 files). KOS profiles live in `plugins/OptimizeIsEasy/profiles/*.kos`. Server-file backups land in `plugins/OptimizeIsEasy/backups/`.
+
+### modules/ExploitDB.yml — deciding what gets patched
+
+```yaml
+values:
+  auto-check-on-start: true
+  auto-patch-on-start: false      # patch on boot, still gated by the lists below
+  dry-run: false                   # report what would change, write nothing
+  backup-before-patch: true        # EDB used to write with no backup at all
+  patch-cooldown-seconds: 3        # ignore a second "patch all" in this window
+
+  enabled-exploits: ['*']          # '*' or an explicit list of ids
+  patch-allowlist: []              # if set, ONLY these may be patched
+  patch-denylist: ['EDB-12', 'EDB-18']  # never patched, not even by patch all
+
+  rate-limit-packets: 400          # value for EDB-21
+
+  packet-limits:                   # override the limiter values per exploit
+    EDB-13:
+      action: DROP                 # DROP, FILTER or DISABLED
+      interval: 0.5                # seconds
+      max-packet-rate: 5.0         # packets per second
+```
+
+`enabled-exploits` decides what exists at all. `patch-allowlist` is the stricter gate on top. `patch-denylist` always wins, so you can keep EDB-12 visible and auditable while making it impossible to apply by accident. All three are honoured identically by `/exploitfix patch`, `/optimize edb patch`, the GUI shift-click and `auto-patch-on-start`.
+
+### modules/ServerTuner.yml — deciding what gets applied
+
+```yaml
+values:
+  default-profile: YouHaveTrouble.kos
+  world-is-pregenerated: 0         # 1 = yes, 2 = no, 0 = ask every time
+  allow-override-pregenerated: false
+  dry-run: false
+  backup-before-apply: true
+  denied-profiles: []              # e.g. ['LowEnd'] - hidden everywhere
+```
+
+A profile on `denied-profiles` disappears from `/optimize kos`, from tab completion and from the Krypton GUI, and `runProfile` refuses it even if the name is typed by hand. The `.kos` suffix is optional when listing.
+
+These module keys now take precedence over the older `kos.*` keys in `config.yml`, which still work as a fallback so existing installs keep their settings.
 
 ---
 
@@ -231,7 +321,7 @@ More settings live in `plugins/OptimizeIsEasy/modules/*.yml` (17 files). KOS pro
 
 1. Drop the jar into `plugins/`
 2. Restart your Paper 1.21.x server. Works on Paper, Purpur and Folia plus any Paper fork
-3. Run `/optimize status` and `/exploitfix check` to see where you stand
+3. Run `/optimize` and `/exploitfix` in-game to open the menus, or `/optimize status` and `/exploitfix check` for the text output
 
 That is it. No extra setup.
 
@@ -245,9 +335,25 @@ cd OptimizeIsEasy/1.21.x
 ./gradlew clean build
 ```
 
-Jar goes to `1.21.x/build/libs/OptimizeIsEasy-1.0.0.jar`.
+Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.0.0.jar`.
 
 Requires Java 21, Paper API 1.21.11. Runs on Paper, Purpur, Folia and Paper forks. No Paperweight, no NMS toolchain.
+
+---
+
+## Upgrading to 2.0.0
+
+Drop the new jar in and restart. Config files are merged in place, so nothing to delete. Five things changed that you will notice:
+
+**Bare `/optimize` and `/exploitfix` now open a GUI.** For players only, console still gets the text output. Set `gui.auto-open: false` in `config.yml` if you want the old usage text back. `/exploitfix` is also reachable as `/exploit`.
+
+**Module clicks moved in the GUI.** In the module list, `ServerTuner`, `ExploitDB` and `BorderControl` now open their own menu on **left-click**; **right-click** is the toggle. Every other module still toggles on left-click. If you were left-clicking ServerTuner to switch it off, use right-click now.
+
+**ExploitDB went from 12 to 22 entries, and two are no longer patched by default.** `EDB-12` (forces `online-mode=true`) and `EDB-18` (throttles plugin messaging) are on `patch-denylist`, so `patch all` skips them. Both are still listed and auditable. Remove one from `patch-denylist` in `modules/ExploitDB.yml` if you want it applied. This means a direct-join server that relied on `patch all` for EDB-12 should either drop it from the denylist or run `/exploitfix patch EDB-12` after editing.
+
+**Patching is stricter and safer.** A config key that is missing from your server files is now skipped and logged by name instead of being written — the old code would create the key and then report it as fixed. EDB also copies your files to `plugins/OptimizeIsEasy/backups/` before writing; in 1.0.0 it wrote with no backup at all.
+
+**`modules/ServerTuner.yml` wins over `config.yml`.** `default-profile`, `allow-override-pregenerated` and the new `world-is-pregenerated` are read from the module file first. The old `kos.*` keys in `config.yml` still work as a fallback, so existing installs keep their values. If you had edited `default-profile` in both places, the module file is the one that counts now.
 
 ---
 
