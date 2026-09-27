@@ -6,6 +6,8 @@ import com.optimizeiseasy.api.event.HibernateUnfreezeEvent;
 import com.optimizeiseasy.core.commands.ExploitFixCommand;
 import com.optimizeiseasy.core.commands.OptimizeCommand;
 import com.optimizeiseasy.core.commands.BorderCommand;
+import com.optimizeiseasy.core.gui.EdbGui;
+import com.optimizeiseasy.core.gui.KryptonGui;
 import com.optimizeiseasy.core.gui.OptimizeGui;
 import com.optimizeiseasy.core.hooks.PlaceholderHook;
 import com.optimizeiseasy.core.listeners.RestartAlertListener;
@@ -28,6 +30,8 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
     private ModuleManager moduleManager;
     private ExploitFixCommand exploitFixCommand;
     private OptimizeGui gui;
+    private KryptonGui kryptonGui;
+    private EdbGui edbGui;
     private UpdateChecker updateChecker;
     private boolean debug;
     private SoftwareDetector softwareDetector;
@@ -36,6 +40,8 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
     public static OptimizeIsEasyPlugin getInstance() { return instance; }
     public ModuleManager getModuleManager() { return moduleManager; }
     public OptimizeGui getGui() { return gui; }
+    public KryptonGui getKryptonGui() { return kryptonGui; }
+    public EdbGui getEdbGui() { return edbGui; }
     public UpdateChecker getUpdateChecker() { return updateChecker; }
     public boolean isDebug() { return debug; }
     public SoftwareDetector getSoftwareDetector() { return softwareDetector; }
@@ -87,6 +93,8 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
         }
         // GUI and update checker
         try { gui = new OptimizeGui(this); } catch (Throwable t) { getLogger().fine("GUI init failed: " + t.getMessage()); }
+        try { kryptonGui = new KryptonGui(this); } catch (Throwable t) { getLogger().fine("Krypton GUI init failed: " + t.getMessage()); }
+        try { edbGui = new EdbGui(this); } catch (Throwable t) { getLogger().fine("EDB GUI init failed: " + t.getMessage()); }
         try { Bukkit.getPluginManager().registerEvents(new RestartAlertListener(this), this); } catch (Throwable t) { getLogger().fine("RestartAlert init failed: " + t.getMessage()); }
         try {
             updateChecker = new UpdateChecker(this);

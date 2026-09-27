@@ -9,12 +9,13 @@ folia-supported: true
 softdepend: [PlaceholderAPI]
 commands:
   optimize:
-    description: Performance controls - status, now, toggle, reload, kos, edb, border, report.
-    usage: /optimize <status|now|toggle [module]|reload|kos|edb|border|report>
+    description: Performance controls - status, now, toggle, reload, gui, krypton, kos, edb, border, report.
+    usage: /optimize <status|now|toggle [module]|reload|gui|krypton|kos|edb|border|report>
     permission: optimizeiseasy.optimize
   exploitfix:
-    description: Security and protection controls - status, list, toggle, check, patch.
-    usage: /exploitfix <status|list|toggle <name>|check|patch <id|all>>
+    description: Security and protection controls - status, list, gui, toggle, check, patch.
+    usage: /exploitfix <status|list|gui|toggle <name>|check|patch <id|all>>
+    aliases: [exploit]
     permission: optimizeiseasy.exploitfix
   border:
     description: Opens the world-border configuration interface (BorderControl module).

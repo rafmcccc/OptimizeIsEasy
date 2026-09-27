@@ -31,7 +31,13 @@ main:
   updater: false
   warnings: false
 
+# GUI
+gui:
+  # Bare /optimize and /exploitfix open the GUI for players. Set to false to print usage instead.
+  auto-open: true
+
 # Server tuner
+# Legacy: these still work as a fallback. modules/ServerTuner.yml wins when it sets them.
 kos:
   override-pregenerated-world-protections: false
   using-tcpshield: false
