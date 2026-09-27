@@ -7,3 +7,13 @@ ServerTuner:
     allow-override-pregenerated: false
     # Default profile when running /optimize kos without args
     default-profile: YouHaveTrouble.kos
+    # 1 = world is pre-generated, 2 = it is not, 0 = ask every time.
+    world-is-pregenerated: 0
+    # Report what would change without writing anything to your server files.
+    dry-run: false
+    # Copy every file before writing to it, into plugins/OptimizeIsEasy/backups/
+    backup-before-apply: true
+    # Profiles to hide. They disappear from /optimize kos, tab completion and the
+    # Krypton GUI, and runProfile refuses them even if the name is typed by hand.
+    # Matching ignores the .kos suffix, so 'LowEnd' and 'LowEnd.kos' both work.
+    denied-profiles: []

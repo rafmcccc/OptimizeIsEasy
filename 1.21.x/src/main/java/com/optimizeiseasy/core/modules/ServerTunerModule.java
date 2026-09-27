@@ -49,22 +49,83 @@ public class ServerTunerModule extends AbstractModule {
     public void disable() {
     }
 
+    public boolean isDryRun() {
+        return getSection() != null && getSection().getBoolean("dry-run", false);
+    }
+
+    public boolean isBackupBeforeApply() {
+        return getSection() == null || getSection().getBoolean("backup-before-apply", true);
+    }
+
+    public String defaultProfile() {
+        if (getSection() != null) {
+            String v = getSection().getString("default-profile");
+            if (v != null && !v.isBlank()) return v;
+        }
+        return plugin.getConfig().getString("kos.default-profile", "YouHaveTrouble.kos");
+    }
+
+    public Boolean storedPregen() {
+        int v = -1;
+        if (getSection() != null && getSection().contains("world-is-pregenerated")) {
+            v = getSection().getInt("world-is-pregenerated", 0);
+        }
+        if (v < 0) v = plugin.getConfig().getInt("kos.world-is-pregenerated", 0);
+        if (v == 1) return true;
+        if (v == 2) return false;
+        return null;
+    }
+
+    public boolean isDeniedProfile(String name) {
+        if (getSection() == null) return false;
+        for (String s : getSection().getStringList("denied-profiles")) {
+            if (s.equalsIgnoreCase(name) || s.equalsIgnoreCase(stripExtension(name))) return true;
+        }
+        return false;
+    }
+
+    private static String stripExtension(String name) {
+        return name.endsWith(".kos") ? name.substring(0, name.length() - 4) : name;
+    }
+
     public List<String> listProfiles() {
-        List<String> out = new ArrayList<>();
+        List<String> allowed = new ArrayList<>();
+        List<String> denied = new ArrayList<>();
         File dir = new File(plugin.getDataFolder(), "profiles");
         File[] files = dir.listFiles((d, n) -> n.endsWith(".kos"));
         if (files != null) {
-            for (File f : files) out.add(f.getName());
+            for (File f : files) {
+                if (isDeniedProfile(f.getName())) denied.add(f.getName());
+                else allowed.add(f.getName());
+            }
         }
-        if (out.isEmpty()) {
-            out.add("YouHaveTrouble.kos");
-            out.add("FarmFriendly.kos");
-            out.add("Balanced.kos");
-            out.add("LowEnd.kos");
+        if (allowed.isEmpty()) {
+            for (String p : List.of("YouHaveTrouble.kos", "FarmFriendly.kos", "Balanced.kos", "LowEnd.kos")) {
+                if (!isDeniedProfile(p) && !allowed.contains(p)) allowed.add(p);
+            }
         }
-        out.sort(String::compareToIgnoreCase);
-        return out;
+        if (denied.isEmpty() && allowed.isEmpty()) allowed.add("YouHaveTrouble.kos");
+        allowed.sort(String::compareToIgnoreCase);
+        return allowed;
     }
+
+    public List<String> deniedProfiles() {
+        List<String> denied = new ArrayList<>();
+        File dir = new File(plugin.getDataFolder(), "profiles");
+        File[] files = dir.listFiles((d, n) -> n.endsWith(".kos"));
+        if (files != null) {
+            for (File f : files) if (isDeniedProfile(f.getName())) denied.add(f.getName());
+        }
+        if (getSection() != null) {
+            for (String s : getSection().getStringList("denied-profiles")) {
+                String name = s.endsWith(".kos") ? s : s + ".kos";
+                if (!denied.contains(name)) denied.add(name);
+            }
+        }
+        denied.sort(String::compareToIgnoreCase);
+        return denied;
+    }
+
 
     public boolean runProfile(String profileName, boolean pregenerated, CommandSender sender) {
         if (profileName == null) return false;
@@ -72,6 +133,13 @@ public class ServerTunerModule extends AbstractModule {
         if (profileName.contains("..") || profileName.contains("/") || profileName.contains("\\")) {
             sender.sendMessage("§cInvalid profile name.");
             return false;
+        }
+        if (isDeniedProfile(profileName)) {
+            sender.sendMessage("§cProfile §f" + profileName + " §cis on the denied-profiles list in modules/ServerTuner.yml.");
+            return false;
+        }
+        if (isDryRun()) {
+            sender.sendMessage("§eDry run. §7modules/ServerTuner.yml has §edry-run: true§7, so nothing will be written.");
         }
         try {
             File dir = new File(plugin.getDataFolder(), "profiles").getCanonicalFile();
@@ -99,6 +167,7 @@ public class ServerTunerModule extends AbstractModule {
         sender.sendMessage("§aRunning ServerTuner (KOS) with §f" + profileName + " §7pregenerated=" + pregenerated);
         int applied = 0, skipped = 0, failed = 0;
         Set<String> backedUp = new HashSet<>();
+        boolean dry = isDryRun();
 
         for (TunKey k : keys()) {
             Object raw = kos.get(k.kos());
@@ -108,25 +177,21 @@ public class ServerTunerModule extends AbstractModule {
             if (!new File(k.file()).isFile()) { skipped++; continue; }
             Object value = coerce(raw, k.type());
             if (value == null) { skipped++; continue; }
-            if (!backedUp.contains(k.file())) {
-                try { new BackupManager(plugin).backup(new File(k.file())); } catch (Throwable ignored) {}
-                backedUp.add(k.file());
-            }
+            if (dry) { applied++; continue; }
+            backupOnce(k.file(), backedUp);
             boolean ok = k.type() == VType.PROP
                     ? ServerFileUtil.setProperty(k.file(), k.path(), String.valueOf(value))
                     : ServerFileUtil.setYaml(k.file(), k.path(), value);
             if (ok) applied++; else failed++;
         }
 
-        boolean overridePregen = plugin.getConfig().getBoolean("kos.override-pregenerated-world-protections", false);
+        boolean overridePregen = (getSection() != null && getSection().getBoolean("allow-override-pregenerated", false))
+                || plugin.getConfig().getBoolean("kos.override-pregenerated-world-protections", false);
         if (sd == null || sd.supportsPaperWorld()) {
             String pw = "config/paper-world-defaults.yml";
             if (new File(pw).isFile()) {
-                if (!backedUp.contains(pw)) {
-                    try { new BackupManager(plugin).backup(new File(pw)); } catch (Throwable ignored) {}
-                    backedUp.add(pw);
-                }
-                if (ServerFileUtil.setYaml(pw, "environment.treasure-maps.enabled", pregenerated || overridePregen)) applied++;
+                if (!dry) backupOnce(pw, backedUp);
+                if (dry || ServerFileUtil.setYaml(pw, "environment.treasure-maps.enabled", pregenerated || overridePregen)) applied++;
                 else failed++;
                 if (!pregenerated && !overridePregen) sender.sendMessage("§eTreasure maps disabled (world not pregenerated). Pre-generate to re-enable.");
             } else skipped++;
@@ -134,34 +199,40 @@ public class ServerTunerModule extends AbstractModule {
         if (sd != null && sd.supportsPurpur()) {
             String pf = "purpur.yml";
             if (new File(pf).isFile()) {
-                if (!backedUp.contains(pf)) {
-                    try { new BackupManager(plugin).backup(new File(pf)); } catch (Throwable ignored) {}
-                    backedUp.add(pf);
-                }
-                if (ServerFileUtil.setYaml(pf, "world-settings.default.mobs.dolphin.disable-treasure-searching", !(pregenerated || overridePregen))) applied++;
+                if (!dry) backupOnce(pf, backedUp);
+                if (dry || ServerFileUtil.setYaml(pf, "world-settings.default.mobs.dolphin.disable-treasure-searching", !(pregenerated || overridePregen))) applied++;
                 else failed++;
             } else skipped++;
         }
         if (sd == null || sd.supportsPaperGlobal()) {
             String pg = "config/paper-global.yml";
             if (new File(pg).isFile()) {
-                if (!backedUp.contains(pg)) {
-                    try { new BackupManager(plugin).backup(new File(pg)); } catch (Throwable ignored) {}
-                    backedUp.add(pg);
-                }
-                if (ServerFileUtil.setYaml(pg, "item-validation.book-size.page-max", 1024)) applied++; else failed++;
-                if (ServerFileUtil.setYaml(pg, "misc.max-joins-per-tick", 3)) applied++; else failed++;
+                if (!dry) backupOnce(pg, backedUp);
+                if (dry || ServerFileUtil.setYaml(pg, "item-validation.book-size.page-max", 1024)) applied++; else failed++;
+                if (dry || ServerFileUtil.setYaml(pg, "misc.max-joins-per-tick", 3)) applied++; else failed++;
             } else skipped += 2;
         }
 
-        plugin.setRestartRequired(true);
-        sender.sendMessage("§aDone! Applied §e" + applied + " §asettings§7, skipped §e" + skipped + "§7, failed §e" + failed + "§7. §cRestart required.");
-        sender.sendMessage("§7Originals backed up to §fplugins/OptimizeIsEasy/backups/");
+        if (!dry) plugin.setRestartRequired(true);
+        sender.sendMessage(dry
+                ? "§eDry run done. §7Would apply §e" + applied + " §7settings. Nothing was written."
+                : "§aDone! Applied §e" + applied + " §asettings§7, skipped §e" + skipped + "§7, failed §e" + failed + "§7. §cRestart required.");
+        if (!dry) sender.sendMessage("§7Originals backed up to §fplugins/OptimizeIsEasy/backups/");
         if (sd != null && !sd.supportsPaperWorld()) {
             sender.sendMessage("§cYou are not running Paper - over 50 optimisations were skipped. Consider switching to Paper/Purpur.");
         }
-        plugin.getLogger().info("ServerTuner applied " + applied + "/" + (applied + skipped + failed) + " settings from " + profileName);
+        List<String> denied = deniedProfiles();
+        if (!denied.isEmpty()) {
+            sender.sendMessage("§7Hidden by denied-profiles: §8" + String.join(", ", denied));
+        }
+        plugin.getLogger().info("ServerTuner " + (dry ? "dry-run " : "") + applied + "/" + (applied + skipped + failed)
+                + " settings from " + profileName);
         return failed == 0;
+    }
+
+    private void backupOnce(String file, Set<String> backedUp) {
+        if (!isBackupBeforeApply() || !backedUp.add(file)) return;
+        try { new BackupManager(plugin).backup(new File(file)); } catch (Throwable ignored) {}
     }
 
     private boolean supports(SoftwareDetector sd, String file) {
