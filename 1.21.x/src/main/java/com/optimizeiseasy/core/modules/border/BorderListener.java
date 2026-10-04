@@ -16,6 +16,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+// TODO: confirm Border's license with Gab before redistributing — no license
+// file for it was found in this repo (see NOTICE). Until confirmed, treat the
+// Border-derived GUI code as all-rights-reserved by its author.
 public class BorderListener implements Listener {
     private final OptimizeIsEasyPlugin plugin;
     private final BorderGUI guiManager = new BorderGUI();

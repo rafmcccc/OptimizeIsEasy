@@ -360,6 +360,27 @@ These module keys now take precedence over the older `kos.*` keys in `config.yml
 
 ---
 
+## What this changes
+
+Read this before installing on a live server. OptimizeIsEasy is not just an observer — it acts:
+
+- **Hibernate freezes ticks and the daylight cycle when the server is empty.** No entities tick, no daylight advances, CPU idles. A player joining wakes it instantly.
+- **RedstoneLimiter and HopperOptimizer caps can slow farms and clocks.** Redstone beyond the per-chunk cap is cancelled, hoppers wait when full. Tune `modules/RedstoneLimiter.yml` and `modules/HopperOptimizer.yml` if a farm misbehaves.
+- **LagShield temporarily lowers view distance, simulation distance and randomTickSpeed when TPS drops**, and restores your originals when the module is disabled.
+- **ServerTuner and ExploitDB edit `server.properties`, `bukkit.yml`, `spigot.yml` and the Paper configs.** Originals are backed up to `plugins/OptimizeIsEasy/backups/` first, writes are atomic, and a restart is required to apply them. A failed backup skips that file instead of writing it.
+
+## Compatibility
+
+| Software | Status | Tested version |
+|---|---|---|
+| Paper 1.21.x | Supported | _TBD_ |
+| Purpur | Supported | _TBD_ |
+| Folia | Partial (scheduling works; TPS-based LagShield throttling stays off) | _TBD_ |
+
+Fill in the tested version column after verifying on a live server.
+
+---
+
 ## Installation
 
 1. Drop the jar into `plugins/`
@@ -373,7 +394,7 @@ That is it. No extra setup.
 ## Building from source
 
 ```
-git clone <your repo>
+git clone https://github.com/rafmcccc/OptimizeIsEasy.git
 cd OptimizeIsEasy/1.21.x
 ./gradlew clean build
 ```
@@ -472,4 +493,4 @@ You can use, modify and sell it. Just keep the copyright notice.
 
 Built by rafmcccc for Paper 1.21 and Paper forks. Designed for Paper, Purpur and Folia.
 
-Server tuning and exploit checks are ports of [Kryptonite](https://github.com/LewMC/Kryptonite) by LewMC (Apache-2.0). Mob AI reduction is inspired by [LagFixer](https://github.com/lajczik/lagfixer) by lajczik (GPL-3.0), reimplemented clean-room against the Paper Goal API. World-border GUI is a port of Border by Gab. Thanks to YouHaveTrouble for the optimisation guide behind the default profile.
+Server tuning and exploit checks are ports of [Kryptonite](https://github.com/LewMC/Kryptonite) by LewMC (Apache-2.0, see [NOTICE](NOTICE)). Mob AI reduction is inspired by [LagFixer](https://github.com/lajczik/lagfixer) by lajczik (GPL-3.0), reimplemented clean-room against the Paper Goal API. World-border GUI is a port of Border by Gab (see [NOTICE](NOTICE) — license still to be confirmed). Thanks to YouHaveTrouble for the optimisation guide behind the default profile.
