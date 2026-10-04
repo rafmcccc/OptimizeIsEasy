@@ -1,0 +1,464 @@
+#
+# OptimizeIsEasy first-party KOS profile.
+# VanillaPlus: near-vanilla SMP. Only the safe, behaviour-preserving wins are taken.
+#
+# Profile format from Kryptonite by LewMC (Apache-2.0).
+# Shipped and applied by OptimizeIsEasy ${version}.
+#
+# How to read this file
+#   * Every key is optional. A key that is missing here is never touched.
+#   * A key your server version does not have is skipped, never invented.
+#   * The literal value 'default' means "leave whatever the server file says".
+#     This profile uses it a lot on purpose: vanilla behaviour wins over tuning.
+#   * A whole section is skipped when that server file does not exist, so the same
+#     profile is safe on Paper, Purpur, Pufferfish, Gale and Leaf.
+#   * Values are tuned for 1.21.x survival communities that want vanilla mechanics
+#     with none of the silly overhead. Need more TPS? Step up to FarmFriendly.
+#
+
+# Profile information
+meta:
+  description: Near-vanilla SMP tuning. Safe wins only, mechanics untouched.
+  author: OptimizeIsEasy
+
+# Server Settings - server.properties
+server:
+  # Compression above this size stops costing CPU for almost no bandwidth gain.
+  network-compression-threshold: 256
+  distance:
+    view: 8
+    simulation: 4
+  # Let chunk writes happen on the chunk's own thread instead of stalling the main thread.
+  sync-chunk-writes: false
+  allow-flight: true
+
+# CraftBukkit Settings - bukkit.yml
+craftbukkit:
+  # Vanilla-ish caps. Nothing here starves a survival world.
+  spawn-limits:
+    monsters: 70
+    animals: 10
+    axolotls: 5
+    ambient: 15
+    water:
+      animals: 5
+      ambient: 20
+      underground-creature: 5
+  # 'default' and 1 mean "leave the vanilla spawn cycle alone".
+  ticks-per:
+    monsters: 1
+    animals: 400
+    axolotls: 1
+    ambient: 1
+    water:
+      animals: 1
+      ambient: 1
+      underground-creature: 1
+  # Ticks between full world saves. Higher means fewer save spikes, -1 disables autosave.
+  ticks-per.autosave: 6000
+  # Paper caps this at 20 ticks, so it only really matters on Spigot.
+  chunk-gc-period-in-ticks: 400
+  # Leave the overload warning on, it is the first thing you want to see.
+  warn-on-overload: true
+  # Milliseconds an IP must wait between connection attempts.
+  connection-throttle: 4000
+  # Hides your plugin list from ping.
+  query-plugins: false
+  # One of: true, false, default.
+  deprecated-verbose: "default"
+
+# Spigot Settings - spigot.yml
+spigot:
+  view-distance: default
+  simulation-distance: default
+  # Chunks around a player where mobs may spawn. Vanilla 8 keeps natural spawning intact.
+  mob-spawn-range: 8
+  # Vanilla activation ranges, nothing here throttles your mobs.
+  entities:
+    activation-range:
+      animals: 32
+      monsters: 32
+      raiders: 64
+      misc: 16
+      water: 16
+      villagers: 32
+      flying: 32
+    tracking-range:
+      players: 128
+      animals: 96
+      monsters: 96
+      misc: 96
+      other: 64
+    # Vanilla wake-up behaviour, listed here so a hand-edited file can be reset to it.
+    wake-up-inactive:
+      animals:
+        every: 1200
+        max-per-tick: 4
+      monsters:
+        every: 400
+        max-per-tick: 8
+      villagers:
+        every: 600
+        max-per-tick: 4
+      flying-monsters:
+        every: 200
+        max-per-tick: 8
+    tick-inactive-villagers: true
+    spawner-mobs-nerfed: false
+  hopper:
+    # Ticks between one item move and one hopper scan.
+    transfer: 8
+    check: 8
+  # Three items per slot moves farm output noticeably faster.
+  hopper.amount: 3
+  # A hopper pulling from an unloaded chunk is a cheap way to load the world.
+  hopper.can-load-chunks: false
+  # Ticks a TNT is processed per tick, 100 is the vanilla/Paper default.
+  max-tnt-per-tick: 100
+  # Ground items vanish at the vanilla 6000 ticks so unattended drops stay collectable.
+  item-despawn-rate: 6000
+  # Vanilla is 1200 (60s). Still short enough that arrows never pile up.
+  arrow-despawn-rate: 600
+  trident-despawn-rate: 600
+  # Chance of a lightning strike is 1/thunder-chance per chunk, higher is rarer.
+  thunder-chance: 100000
+  # true keeps vanilla zombie behaviour towards your villagers.
+  zombie-aggressive-towards-villager: true
+  # Vanilla merge behaviour, orbs still combine so entity counts stay sane.
+  merge-radius:
+    item: 4.0
+    exp: 4.0
+  # Random growth speed, 100 is vanilla and this profile keeps it there.
+  growth:
+    cane: 100
+    wheat: 100
+    carrot: 100
+    potato: 100
+    beetroot: 100
+    melon: 100
+    pumpkin: 100
+    bamboo: 100
+    kelp: 100
+
+# Paper Settings - config/paper-world-defaults.yml
+paper:
+  chunks:
+    # Seconds a chunk stays loaded after its last player leaves. Longer means
+    # fewer chunk loads on walk-backs, at the cost of RAM.
+    delay-unloads: 10
+    max-autosave-per-tick: 24
+    prevent-moving-into-unloaded: true
+    # Projectiles per chunk that get saved. -1 means unlimited, kept for egg and
+    # llama spit so vanilla throwing behaviour is never throttled by this profile.
+    entity-save-limit:
+      area-effect-cloud: 8
+      arrow: 16
+      dragon-fireball: 3
+      egg: -1
+      ender-pearl: 8
+      experience-bottle: 3
+      experience-orb: 16
+      eye-of-ender: 8
+      fireball: 8
+      llama-spit: -1
+      potion: 8
+      shulker-bullet: 8
+      small-fireball: 8
+      snowball: 8
+      spectral-arrow: 16
+      trident: 16
+      wither-skull: 4
+  # 'default' means the server keeps its own despawn ranges, so vanilla
+  # mob behaviour is untouched.
+  despawn-ranges:
+    ambient:
+      hard: default
+      soft: default
+    axolotl:
+      hard: default
+      soft: default
+    creature:
+      hard: default
+      soft: default
+    misc:
+      hard: default
+      soft: default
+    monster:
+      hard: default
+      soft: default
+    water:
+      underground-creature:
+        hard: default
+        soft: default
+      ambient:
+        hard: default
+        soft: default
+      creature:
+        hard: default
+        soft: default
+  despawn-time:
+    llama-spit: 1200
+    snowball: 1200
+    fireball: 1200
+    dragon-fireball: 1200
+    small-fireball: 1200
+    arrow: 3000
+    shulker-bullet: 3000
+    wither-skull: 3000
+    trident: 3000
+  per-player-mob-spawns: true
+  # Vanilla 8, so stacked animals and minecart lines are not slowed down.
+  max-entity-collisions: 8
+  update-pathfinding-on-block-update: false
+  fix-climbing-bypass-cramming-rule: true
+  armor-stands:
+    tick: false
+    do-collision-entity-lookups: false
+  nerfed-spawner-mobs-can-jump: false
+  # Spawner ticks at vanilla speed. Grass and container rates are left at the
+  # server default so nothing about the world tick changes.
+  tick-rates:
+    villager:
+      behaviour:
+        nearby-poi: -1
+        acquire-poi: -1
+      sensor:
+        secondary-poi: 40
+        nearest-bed: 40
+        villager-babies: 40
+        player: 40
+        nearest-living-entity: 40
+    mob-spawner: 1
+    grass-spread: default
+    container-update: default
+  optimised-despawn:
+    # Off on purpose: with vanilla rates there is nothing worth fast-clearing.
+    enabled: false
+    cobblestone: 300
+    netherrack: 300
+    sand: 300
+    red-sand: 300
+    gravel: 300
+    dirt: 300
+    short-grass: 300
+    pumpkin: 300
+    melon-slice: 300
+    kelp: 300
+    bamboo: 300
+    sugar-cane: 300
+    twisting-vines: 300
+    weeping-vines: 300
+    oak-leaves: 300
+    spruce-leaves: 300
+    birch-leaves: 300
+    jungle-leaves: 300
+    acacia-leaves: 300
+    dark-oak-leaves: 300
+    mangrove-leaves: 300
+    cactus: 300
+    diorite: 300
+    granite: 300
+    andesite: 300
+    scaffolding: 300
+    arrow:
+      non-player: 20
+      creative: 20
+  # Same-tick behaviour as vanilla redstone, just without the worst overhead.
+  redstone-implementation: ALTERNATE_CURRENT
+  hoppers:
+    ignore-occluding-blocks: true
+  # false keeps vanilla explosion behaviour exactly as players expect it.
+  optimise-explosions: false
+  # true keeps the lookup caches warm, which is the cheaper option on a server
+  # where villagers trade often.
+  find-already-discovered-loot-tables: true
+  find-already-discovered-villager-trade: true
+  xp-orb-groups-per-area: 40
+  environment:
+    # Vanilla weather, fire and portals. Listed so a hand-edited file resets cleanly.
+    disable-thunder: false
+    disable-ice-and-snow: false
+    fire-tick-delay: 30
+    portal-search-radius: 128
+    max-block-ticks: 65536
+    max-fluid-ticks: 65536
+  collisions:
+    only-players-collide: false
+  maps:
+    item-frame-cursor-limit: 128
+  entities:
+    # true keeps the vanilla boot-time dragon scan.
+    scan-for-legacy-ender-dragon: true
+  anticheat:
+    enabled: false
+    engine-mode: 1
+  misc:
+    light-queue-size: 20
+
+# Paper Global Settings - config/paper-global.yml
+paper-global:
+  chunk-system:
+    # -1 lets Paper size the thread pools from your CPU cores. Only set a real
+    # number if you have measured it.
+    io-threads: -1
+    worker-threads: -1
+  player-auto-save:
+    # -1 follows bukkit.yml ticks-per.autosave above, so the two never disagree.
+    rate: -1
+  # Login plugins often leave empty scoreboard teams behind, which slows logins down.
+  scoreboards:
+    save-empty-scoreboard-teams: true
+  collisions:
+    enable-player-collisions: true
+  timings:
+    enabled: false
+  spam-limiter:
+    recipe-spam-increment: 1
+    tab-spam-increment: 1
+  item-validation:
+    # Paper defaults, listed so a hand-edited file can be reset to known-good.
+    book-page-max: 2560
+    display-name: 8192
+    lore-line: 8192
+  packet-limiter:
+    max-packet-rate: 500.0
+    interval: 7.0
+  watchdog:
+    early-warning-delay: 10000
+    early-warning-every: 5000
+  misc:
+    fix-entity-position-desync: true
+  console:
+    enable-brigadier-highlighting: true
+  # Exploit switches. false everywhere closes them, same fixes as the ExploitDB module.
+  unsupported-settings:
+    allow-headless-pistons: false
+    allow-permanent-block-break-exploits: false
+    allow-piston-duplication: false
+    allow-unsafe-end-portal-teleportation: false
+
+# Purpur Settings - purpur.yml
+purpur:
+  entities:
+    all:
+      can-use-portals: true
+    zombie:
+      aggressive-towards-villager-when-lagging: true
+    villager:
+      # Lobotomising is off so villagers keep restocking and breeding.
+      lobotomized: false
+      search-radius:
+        acquire-poi: 20
+        nearest-bed-sensor: 20
+    shared-random: true
+  tps-catchup: true
+  use-alternative-keepalive: true
+  teleport-if-outside-worldborder: true
+  # Purpur treats the server as lagging below this and throttles its own features.
+  lagging-tps-threshold: 19.0
+  gameplay-mechanics:
+    elytra:
+      # true keeps vanilla kinetic damage while gliding.
+      kinetic-damage: true
+  mobs:
+    phantom:
+      spawn:
+        # 10 is what vanilla can already add per attempt, so nothing is reduced.
+        per-attempt:
+          max: 10
+
+# Pufferfish Settings - pufferfish.yml
+pufferfish:
+  max-loads-per-projectile: 8
+  # Left at the server default so projectile chunk loading stays vanilla.
+  max-loads-per-tick: default
+  entities:
+    dynamic-activation-of-brain:
+      # Left off: DAB slows mob brains down, which changes how fast farms tick.
+      enabled: false
+      max-tick-freq: 20
+      activation-distance-modifier: 7
+    async-mob-spawning: true
+    suffocation-optimisation: true
+    inactive-goal-selector-throttle: true
+  disable-method-profiler: true
+
+# Gale Settings - config/gale-global.yml (Leaf ships this too, Leaf is built on Gale)
+gale:
+  # Console noise that is harmless on an updated server. Turning it off keeps
+  # latest.log readable and saves the string formatting behind it.
+  log-to-console:
+    chat:
+      empty-message-warning: false
+      expired-message-warning: false
+    ignored-advancements: false
+    invalid-pool-element-error-log-level: none
+    invalid-statistics: false
+    legacy-material-initialization: false
+    set-block-in-far-chunk: false
+    unrecognized-recipes: false
+  misc:
+    # Unparsable legacy structure NBT throws an exception per hit without this.
+    ignore-null-legacy-structure-data: true
+    keepalive:
+      send-multiple: true
+  small-optimizations:
+    # Left close to vanilla for this profile, these two only affect bookkeeping.
+    reduced-intervals:
+      increase-time-statistics: 20
+      update-entity-line-of-sight: 4
+    optimized-tracker:
+      enabled: true
+
+# Leaf Settings - config/leaf-global.yml
+# Thread counts are left at 0 on purpose: Leaf sizes those pools from your CPU
+# cores, so the same profile is correct on a VPS and on a dedicated box.
+leaf:
+  async:
+    async-entity-tracker:
+      enabled: true
+      # Only needed for real-entity NPC plugins such as Citizens.
+      compat-mode: false
+      max-threads: 0
+      keepalive: 60
+    async-pathfinding:
+      enabled: true
+      max-threads: 0
+      keepalive: 60
+      queue-size: 0
+      reject-policy: CALLER_RUNS
+    async-target-finding:
+      enabled: true
+    async-mob-spawning:
+      enabled: true
+    async-locator:
+      enabled: true
+      threads: 0
+      keepalive: 60
+    async-chunk-send:
+      enabled: true
+      threads: 0
+      keepalive: 60
+  performance:
+    use-virtual-thread-for-async-chat-executor: true
+    use-virtual-thread-for-async-scheduler: true
+    use-virtual-thread-for-user-authenticator: true
+    # Mob goal selectors re-run once a second while the mob is inactive.
+    inactive-goal-selector-throttle: true
+    skip-ai-for-non-aware-mob: true
+    optimized-powered-rails: true
+    # Left off: delaying a full hopper slows a farm down for no TPS gain.
+    throttle-hopper-when-full:
+      enabled: false
+    # Left off: skipping minecart collisions changes how stacked carts push.
+    optimize-minecart:
+      enabled: false
+    dab:
+      enabled: true
+      max-tick-freq: 20
+      start-distance: 12
+      activation-dist-mod: 7
+  misc:
+    secure-seed:
+      # Stays off so slime chunks, villages and existing builds are unchanged.
+      enabled: false
