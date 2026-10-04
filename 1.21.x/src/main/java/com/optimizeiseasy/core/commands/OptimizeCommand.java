@@ -77,12 +77,12 @@ public class OptimizeCommand implements TabExecutor {
         double mspt = 0;
         SupportManager sm = SupportManager.getInstance();
         if (sm != null && sm.isSupportMspt()) {
-            try { mspt = sm.getMspt(); } catch (Throwable ignored) {}
+            try { mspt = sm.getMspt(); } catch (Exception e) { if (plugin.isDebug()) plugin.getLogger().fine("[OptimizeCommand] MSPT read failed: " + e.getMessage()); }
         } else {
-            try { mspt = Bukkit.getAverageTickTime(); } catch (Throwable ignored) {}
+            try { mspt = Bukkit.getAverageTickTime(); } catch (Exception e) { if (plugin.isDebug()) plugin.getLogger().fine("[OptimizeCommand] MSPT read failed: " + e.getMessage()); }
         }
         long entities = 0;
-        for (World w : Bukkit.getWorlds()) try { entities += w.getEntities().size(); } catch (Throwable ignored) {}
+        for (World w : Bukkit.getWorlds()) try { entities += w.getEntities().size(); } catch (Exception e) { if (plugin.isDebug()) plugin.getLogger().fine("[OptimizeCommand] entity count failed: " + e.getMessage()); }
         HibernateModule hm = plugin.getModuleManager().get(HibernateModule.class);
         boolean frozen = hm != null && hm.isFrozen();
         // Count enabled modules

@@ -233,6 +233,7 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
             api = Bukkit.getMobGoals();
             snapshot = new ArrayList<>(api.getAllGoals(mob));
         } catch (Throwable t) {
+            plugin.getLogger().warning("[MobAiReducer] AI snapshot failed for " + mob.getType() + ", skipping: " + t.getMessage());
             return;
         }
         for (Goal<Mob> goal : snapshot) {
@@ -240,6 +241,7 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
             try {
                 key = goal.getKey().getNamespacedKey();
             } catch (Throwable t) {
+                plugin.getLogger().warning("[MobAiReducer] unreadable goal on " + mob.getType() + ", skipping it: " + t.getMessage());
                 continue;
             }
             if (key == null) continue;
@@ -271,8 +273,9 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
                 }
                 try {
                     api.removeGoal(mob, goal);
-                } catch (Throwable ignored) {
+                } catch (Throwable t) {
                     // Already gone or concurrently modified; move on.
+                    plugin.getLogger().warning("[MobAiReducer] could not remove goal from " + mob.getType() + ": " + t.getMessage());
                 }
             }
         }
@@ -286,8 +289,9 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
         }
         try {
             api.removeGoal(mob, oldGoal);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
             // Already gone; still add the replacement below.
+            plugin.getLogger().warning("[MobAiReducer] could not remove old goal from " + mob.getType() + ": " + t.getMessage());
         }
         try {
             if (mob instanceof Animals animal) {
@@ -304,6 +308,7 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
         try {
             return Bukkit.getMobGoals().getAllGoals(mob).size();
         } catch (Throwable t) {
+            if (plugin.isDebug()) plugin.getLogger().fine("[MobAiReducer] goal count failed: " + t.getMessage());
             return -1;
         }
     }

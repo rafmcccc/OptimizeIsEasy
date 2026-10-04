@@ -106,7 +106,7 @@ public class WorldCleanerModule extends AbstractModule {
 
     private void safeRemove(Entity ent, boolean folia) {
         if (folia) {
-            try { Bukkit.getRegionScheduler().run(plugin, ent.getLocation(), t -> ent.remove()); } catch (Throwable ex) { ent.remove(); }
+            try { Bukkit.getRegionScheduler().run(plugin, ent.getLocation(), t -> ent.remove()); } catch (Throwable ex) { if (plugin.isDebug()) plugin.getLogger().fine("[WorldCleaner] region remove failed, removing directly: " + ex.getMessage()); ent.remove(); }
         } else ent.remove();
     }
 

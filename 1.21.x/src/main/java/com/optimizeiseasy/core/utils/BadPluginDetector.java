@@ -74,7 +74,9 @@ public class BadPluginDetector {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            plugin.getLogger().warning("[BadPluginDetector] conflict scan failed: " + t.getMessage());
+        }
         return found;
     }
 

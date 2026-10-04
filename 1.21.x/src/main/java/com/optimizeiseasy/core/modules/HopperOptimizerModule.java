@@ -168,10 +168,14 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
                             chunkCount.computeIfAbsent(chunkKey(l), k -> new LongAdder()).increment();
                             lastActivity.put(key, System.currentTimeMillis());
                         }
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable t) {
+                        if (plugin.isDebug()) plugin.getLogger().fine("[HopperOptimizer] skipping unreadable hopper: " + t.getMessage());
+                    }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            if (plugin.isDebug()) plugin.getLogger().fine("[HopperOptimizer] chunk tile-entity scan failed: " + t.getMessage());
+        }
     }
 
     @Override
@@ -180,7 +184,9 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
         for (World w : getAllowedWorlds()) {
             try {
                 for (Chunk chunk : w.getLoadedChunks()) scanChunk(chunk);
-            } catch (Throwable ignored) {}
+            } catch (Throwable t) {
+                if (plugin.isDebug()) plugin.getLogger().fine("[HopperOptimizer] loaded-chunk scan failed for a world: " + t.getMessage());
+            }
         }
         Runnable validate = () -> {
             for (String key : new java.util.HashSet<>(lastActivity.keySet())) {

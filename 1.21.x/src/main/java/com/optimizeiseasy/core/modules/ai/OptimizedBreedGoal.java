@@ -136,8 +136,9 @@ public class OptimizedBreedGoal implements Goal<Animals> {
             mob.getWorld().spawn(mob.getLocation(), ExperienceOrb.class,
                     orb -> orb.setExperience(1 + ThreadLocalRandom.current().nextInt(7)));
             if (onBaby != null) onBaby.accept(baby);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
             // If the world rejects the spawn, love mode is already consumed; nothing else to do.
+            Bukkit.getLogger().warning("[MobAiReducer] breeding spawn failed for " + mob.getType() + ": " + t.getMessage());
         }
     }
 

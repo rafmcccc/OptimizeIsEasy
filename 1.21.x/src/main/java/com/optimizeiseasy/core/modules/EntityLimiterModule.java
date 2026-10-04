@@ -97,7 +97,7 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
                             else if (entity instanceof Projectile) { if (p < limitProjectiles) p++; else if (overflowProjectiles) removed=true; }
                             if (removed) {
                                 if (folia) {
-                                    try { Bukkit.getRegionScheduler().run(plugin, entity.getLocation(), t -> entity.remove()); } catch (Throwable ex) { entity.remove(); }
+                                    try { Bukkit.getRegionScheduler().run(plugin, entity.getLocation(), t -> entity.remove()); } catch (Throwable ex) { if (plugin.isDebug()) plugin.getLogger().fine("[EntityLimiter] region remove failed, removing directly: " + ex.getMessage()); entity.remove(); }
                                 } else entity.remove();
                             }
                         }

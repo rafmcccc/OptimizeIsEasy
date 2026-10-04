@@ -48,7 +48,7 @@ public class ServerTunerModule extends AbstractModule {
                     "HighEnd.kos", "VanillaPlus.kos", "LobbyGames.kos", "Anarchy.kos")) {
                 File out = new File(dir, p);
                 if (!out.exists()) {
-                    try { plugin.saveResource("profiles/" + p, false); } catch (Throwable ignored) {}
+                    try { plugin.saveResource("profiles/" + p, false); } catch (Throwable t) { plugin.getLogger().warning("[ServerTuner] could not seed default profile " + p + ": " + t.getMessage()); }
                 }
             }
         } catch (Throwable t) {

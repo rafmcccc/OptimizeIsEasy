@@ -19,6 +19,8 @@ public class RestartAlertListener implements Listener {
             if (plugin.isRestartRequired()) {
                 e.getPlayer().sendMessage("§e[OptimizeIsEasy] §cRestart required - server-file patches (KOS/EDB) will not apply until restart.");
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            plugin.getLogger().warning("[OptimizeIsEasy] restart alert could not be sent: " + t.getMessage());
+        }
     }
 }

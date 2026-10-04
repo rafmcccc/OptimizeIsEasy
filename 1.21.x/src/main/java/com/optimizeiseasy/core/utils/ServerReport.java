@@ -27,11 +27,13 @@ public class ServerReport {
             SupportManager sm = SupportManager.getInstance();
             if (sm != null && sm.isSupportMspt()) mspt = sm.getMspt();
             else mspt = Bukkit.getAverageTickTime();
-        } catch (Throwable ignored) {}
+        } catch (Exception e) {
+            if (plugin.isDebug()) plugin.getLogger().fine("[ServerReport] MSPT read failed: " + e.getMessage());
+        }
 
         long entities = 0;
         for (World w : Bukkit.getWorlds()) {
-            try { entities += w.getEntities().size(); } catch (Throwable ignored) {}
+            try { entities += w.getEntities().size(); } catch (Exception e) { if (plugin.isDebug()) plugin.getLogger().fine("[ServerReport] entity count failed: " + e.getMessage()); }
         }
 
         SoftwareDetector sd = plugin.getSoftwareDetector();

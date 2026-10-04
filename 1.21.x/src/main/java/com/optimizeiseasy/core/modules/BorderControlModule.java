@@ -27,7 +27,7 @@ public class BorderControlModule extends AbstractModule {
     @Override
     public void disable() {
         if (listener != null) {
-            try { listener.unregister(); } catch (Throwable ignored) {}
+            try { listener.unregister(); } catch (Throwable t) { plugin.getLogger().warning("[BorderControl] listener unregister failed: " + t.getMessage()); }
             listener = null;
         }
     }
