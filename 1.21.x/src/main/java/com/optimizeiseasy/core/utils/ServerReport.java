@@ -82,7 +82,10 @@ public class ServerReport {
             sender.sendMessage(" §8• §fBorder: §e/optimize border §7or §e/border");
         }
 
-        List<String> bad = new BadPluginDetector(plugin).findBadPlugins();
-        if (!bad.isEmpty()) sender.sendMessage(" §8• §cConflicting plugins: §f" + String.join(", ", bad));
+        List<BadPluginDetector.Conflict> bad = new BadPluginDetector(plugin).findConflicts();
+        for (BadPluginDetector.Conflict conflict : bad) {
+            sender.sendMessage(" §8• §cConflicting: §f" + conflict.name()
+                    + " §8- §7" + conflict.why() + " §8→ §7use " + conflict.instead());
+        }
     }
 }

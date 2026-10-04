@@ -174,6 +174,16 @@ We kept it lean on purpose.
 
 ---
 
+## Recommended stack
+
+One anti-lag plugin is enough — two cleaners fighting each other cost more than either saves. `/optimize report` flags known conflicts with the reason and the replacement; the same list is logged once at startup.
+
+**Remove these.** Cleaners that overlap WorldCleaner (`ClearLag`, `EntityClearer`, `AutoClear`, `AntiLagX`) — their purge ticks spike MSPT. Stackers that fight EntityLimiter and MobAiReducer (`StackMob`, `WildStacker`, `RoseStacker`, `UltimateStacker`). Spawn cappers that double-cap with EntityLimiter (`FarmLimiter`, `ChunkSpawnerLimiter`). Runtime reloaders that leak and silently un-do EDB patches (`PlugMan`, `PlugManX`, `PluginManager`, `AutoPluginLoader`) — always restart instead.
+
+**Keep these.** `spark` to find the real cause before tuning blindly. `Chunky` to pre-generate the world so the KOS pregenerated protections can stay on. KOS profiles instead of config-tweaker plugins. And nothing else with per-entity listeners — on a 500-mob farm every extra `CreatureSpawnEvent` handler costs more than the AI it claims to save.
+
+---
+
 ## Commands
 
 ### /optimize - performance and tuning
@@ -368,9 +378,23 @@ cd OptimizeIsEasy/1.21.x
 ./gradlew clean build
 ```
 
-Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.0.0.jar`.
+Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.1.0.jar`.
 
 Requires Java 21, Paper API 1.21.11. Runs on Paper, Purpur, Folia, Leaf, Gale and Paper forks. No Paperweight, no NMS toolchain.
+
+---
+
+## Upgrading to 2.1.0
+
+Drop the new jar in and restart. Config files are merged in place, so nothing to delete. Four things changed that you will notice:
+
+**MobAiReducer actually reduces AI now.** The old module only logged spawns in debug. It now strips expensive goals through the Paper Goal API, swaps vanilla tempt/breed for cooldown-gated versions, and rescans loaded chunks on enable. Farm breeding still works, villagers and tamed mobs are untouched by default. If a farm behaves oddly after the update, narrow `entities.*` in `modules/MobAiReducer.yml` or add the type to `list`.
+
+**Four new KOS profiles.** `HighEnd` (powerful box, view 10), `VanillaPlus` (near-vanilla SMP), `LobbyGames` (lobbies and minigames), `Anarchy` (tightest caps). The Krypton GUI fits all eight in one row. Your on-disk profiles are never overwritten, so the new files appear on the next restart.
+
+**Conflict warnings explain themselves.** `/optimize report` and the startup log now print *why* a plugin is flagged and what to use instead, and the detector also covers `RoseStacker` and `UltimateStacker`. See Recommended stack above.
+
+**Version is 2.1.0 everywhere.** `/optimize version`, the report header and the built jar all read it from the build, so there is nothing to edit by hand.
 
 ---
 
@@ -395,7 +419,7 @@ Drop the new jar in and restart. Config files are merged in place, so nothing to
 ## FAQ
 
 **My server still lags, will this fix it?**  
-It helps a lot, but it will not fix a bad plugin that leaks memory or spawns 10k entities every second. Fix that plugin first. `/optimize report` flags known conflicting plugins.
+It helps a lot, but it will not fix a bad plugin that leaks memory or spawns 10k entities every second. Fix that plugin first. `/optimize report` flags known conflicting plugins with the reason and the replacement.
 
 **Can I keep only hibernate and disable everything else?**  
 Yes. Set every module `enabled: false` except Hibernate, or just run `/optimize toggle WorldCleaner` etc.
