@@ -201,7 +201,10 @@ public class ServerTunerModule extends AbstractModule {
                 applied++;
                 continue;
             }
-            backupOnce(k.file(), backedUp);
+            if (!backupOnce(k.file(), backedUp, sender)) {
+                failed++;
+                continue;
+            }
             switch (write(k, value)) {
                 case WROTE -> applied++;
                 case MISSING_KEY -> {
@@ -223,8 +226,9 @@ public class ServerTunerModule extends AbstractModule {
         if (sd == null || sd.supportsPaperWorld()) {
             String pw = "config/paper-world-defaults.yml";
             if (new File(pw).isFile()) {
-                if (!dry) backupOnce(pw, backedUp);
-                if (dry || ServerFileUtil.setYaml(pw, "environment.treasure-maps.enabled", pregenerated || overridePregen)) applied++;
+                if (dry) applied++;
+                else if (!backupOnce(pw, backedUp, sender)) failed++;
+                else if (ServerFileUtil.setYaml(pw, "environment.treasure-maps.enabled", pregenerated || overridePregen)) applied++;
                 else failed++;
                 if (!pregenerated && !overridePregen) sender.sendMessage("§eTreasure maps disabled (world not pregenerated). Pre-generate to re-enable.");
             } else skipped++;
@@ -232,17 +236,23 @@ public class ServerTunerModule extends AbstractModule {
         if (sd != null && sd.supportsPurpur()) {
             String pf = "purpur.yml";
             if (new File(pf).isFile()) {
-                if (!dry) backupOnce(pf, backedUp);
-                if (dry || ServerFileUtil.setYaml(pf, "world-settings.default.mobs.dolphin.disable-treasure-searching", !(pregenerated || overridePregen))) applied++;
+                if (dry) applied++;
+                else if (!backupOnce(pf, backedUp, sender)) failed++;
+                else if (ServerFileUtil.setYaml(pf, "world-settings.default.mobs.dolphin.disable-treasure-searching", !(pregenerated || overridePregen))) applied++;
                 else failed++;
             } else skipped++;
         }
         if (sd == null || sd.supportsPaperGlobal()) {
             String pg = "config/paper-global.yml";
             if (new File(pg).isFile()) {
-                if (!dry) backupOnce(pg, backedUp);
-                if (dry || ServerFileUtil.setYaml(pg, "item-validation.book-size.page-max", 1024)) applied++; else failed++;
-                if (dry || ServerFileUtil.setYaml(pg, "misc.max-joins-per-tick", 3)) applied++; else failed++;
+                if (dry) {
+                    applied += 2;
+                } else if (!backupOnce(pg, backedUp, sender)) {
+                    failed += 2;
+                } else {
+                    if (ServerFileUtil.setYaml(pg, "item-validation.book-size.page-max", 1024)) applied++; else failed++;
+                    if (ServerFileUtil.setYaml(pg, "misc.max-joins-per-tick", 3)) applied++; else failed++;
+                }
             } else skipped += 2;
         }
 
@@ -263,9 +273,27 @@ public class ServerTunerModule extends AbstractModule {
         return failed == 0;
     }
 
-    private void backupOnce(String file, Set<String> backedUp) {
-        if (!isBackupBeforeApply() || !backedUp.add(file)) return;
-        try { new BackupManager(plugin).backup(new File(file)); } catch (Throwable ignored) {}
+    /**
+     * Backs up {@code file} once per run. Returns false when backups are
+     * enabled and the backup failed, in which case the caller must not write
+     * that file.
+     */
+    boolean backupOnce(String file, Set<String> backedUp, CommandSender sender) {
+        if (!isBackupBeforeApply() || backedUp.contains(file)) return true;
+        boolean ok;
+        try {
+            ok = new BackupManager(plugin).backup(new File(file));
+        } catch (Throwable t) {
+            plugin.getLogger().warning("ServerTuner: backup of " + file + " failed: " + t.getMessage());
+            ok = false;
+        }
+        if (!ok) {
+            plugin.getLogger().warning("ServerTuner: backup of " + file + " failed, skipped patching it.");
+            if (sender != null) sender.sendMessage("§cBackup of §f" + file + "§c failed, skipped patching it.");
+            return false;
+        }
+        backedUp.add(file);
+        return true;
     }
 
     private ServerFileUtil.WriteResult write(TunKey k, Object value) {

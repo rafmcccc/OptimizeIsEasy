@@ -28,7 +28,9 @@ public class ConfigManager {
                 }
             } catch (Exception ignored) {}
             if (curVer < defVer) {
-                new BackupManager(plugin).backup(file);
+                if (!new BackupManager(plugin).backup(file)) {
+                    plugin.getLogger().warning("Backup of " + path + " failed, migrating without a backup.");
+                }
                 plugin.getLogger().warning("Migrated " + path + " from v" + curVer + " to v" + defVer);
             }
         }

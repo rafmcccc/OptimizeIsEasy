@@ -16,9 +16,15 @@ public class BackupManager {
 
     public BackupManager(Plugin plugin) { this.plugin = plugin; }
 
-    public void backup(File file) {
+    /**
+     * Copies {@code file} into {@code plugins/OptimizeIsEasy/backups/}.
+     *
+     * @return true if the file was backed up, or if it does not exist and
+     *         there is nothing to back up; false on any failure.
+     */
+    public boolean backup(File file) {
         try {
-            if (!file.exists()) return;
+            if (!file.exists()) return true;
             File dir = new File(plugin.getDataFolder(), "backups");
             dir.mkdirs();
             String ts = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
@@ -30,7 +36,11 @@ public class BackupManager {
                 Arrays.sort(list, Comparator.comparingLong(File::lastModified));
                 for (int i = 0; i < list.length - keep; i++) list[i].delete();
             }
-        } catch (Exception e) { plugin.getLogger().fine("Backup failed for " + file.getName() + ": " + e.getMessage()); }
+            return true;
+        } catch (Exception e) {
+            plugin.getLogger().warning("Backup failed for " + file.getName() + ": " + e.getMessage());
+            return false;
+        }
     }
 
     public void backupConfigs() {
