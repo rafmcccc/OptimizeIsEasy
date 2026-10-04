@@ -1,4 +1,7 @@
 # A server restart is required to apply changes.
+# Replaces expensive vanilla mob goals with cheaper cooldown-gated versions
+# (Paper Goal API, no NMS). Ideas adapted from lagfixer by lajczik (GPL-3.0),
+# reimplemented clean-room. See MobAiReducerModule for details.
 MobAiReducer:
   enabled: true
   worlds: # Use '*' to enable for all worlds.
@@ -6,7 +9,7 @@ MobAiReducer:
   values:
     collides: true # Disabling this option allows storing up to 2x more creatures, but may currently prevent arrows from hitting optimized entities.
     silent: false # Disables audio packets, improving performance for large farms.
-    async: true
+    async: true # true defers spawn optimization through the region-aware scheduler (Folia-safe). Entity work never runs on raw async threads.
     force_load: true # Overwrites entity AI on plugin reload.
     click_event: true # Sends info when a player clicks on a creature (disabled by the developer).
     purge_interval: 30 # The purge frequency of the cache for mobs with optimized MobAI is defined in seconds. It does not remove animals from the world - it only removes them from the internal WeakHashMap to prevent a memory leak.
