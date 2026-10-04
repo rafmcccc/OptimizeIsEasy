@@ -7,7 +7,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -56,11 +59,47 @@ public final class ServerFileUtil {
     }
 
     public static boolean saveYaml(String path, YamlConfiguration cfg) {
+        Path target = new File(path).toPath();
+        Path tmp = null;
         try {
-            cfg.save(new File(path));
+            tmp = siblingTempFile(target);
+            cfg.save(tmp.toFile());
+            moveReplacing(tmp, target);
+            tmp = null;
             return true;
         } catch (Exception e) {
+            LOG.warning("Could not write " + path + ": " + e.getMessage());
             return false;
+        } finally {
+            deleteQuietly(tmp);
+        }
+    }
+
+    /**
+     * Temp file in the same directory as the target, so the final move stays
+     * on one filesystem and can be atomic. Never leaves a half-written
+     * server file behind: the target is only ever replaced by a full move.
+     */
+    private static Path siblingTempFile(Path target) throws IOException {
+        Path dir = target.toAbsolutePath().getParent();
+        if (dir != null) Files.createDirectories(dir);
+        return Files.createTempFile(dir, ".oie-", ".tmp");
+    }
+
+    private static void moveReplacing(Path tmp, Path target) throws IOException {
+        try {
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void deleteQuietly(Path tmp) {
+        if (tmp == null) return;
+        try {
+            Files.deleteIfExists(tmp);
+        } catch (Exception ignored) {
+            // Best effort: a stray temp file is harmless next to a intact target.
         }
     }
 
@@ -185,11 +224,18 @@ public final class ServerFileUtil {
             if (!lines.isEmpty() && !lines.get(lines.size() - 1).isEmpty()) lines.add("");
             lines.add(key + "=" + value);
         }
+        Path target = f.toPath();
+        Path tmp = null;
         try {
-            Files.write(f.toPath(), lines, StandardCharsets.ISO_8859_1);
+            tmp = siblingTempFile(target);
+            Files.write(tmp, lines, StandardCharsets.ISO_8859_1);
+            moveReplacing(tmp, target);
+            tmp = null;
         } catch (Exception e) {
             LOG.warning("Could not write " + file + ": " + e.getMessage());
             return WriteResult.FAILED;
+        } finally {
+            deleteQuietly(tmp);
         }
         return WriteResult.WROTE;
     }

@@ -14,6 +14,12 @@ class ServerFileUtilWriteTest {
     @TempDir
     Path tmp;
 
+    private long strayTempFiles() throws Exception {
+        try (var stream = java.nio.file.Files.list(tmp)) {
+            return stream.filter(p -> p.getFileName().toString().startsWith(".oie-")).count();
+        }
+    }
+
     @Test
     void yamlDoublesRoundTripAsTheStringTheEdbTableExpects() throws Exception {
         File f = tmp.resolve("paper-global.yml").toFile();
@@ -143,5 +149,47 @@ class ServerFileUtilWriteTest {
         assertThat(lines.get(0)).isEqualTo("#hello");
         assertThat(lines.get(1)).isEqualTo("motd=A server");
         assertThat(lines.get(lines.size() - 1)).isEqualTo("view-distance=10");
+        assertThat(strayTempFiles()).isZero();
+    }
+
+    @Test
+    void yamlWriteLeavesNoTempFilesBehind() throws Exception {
+        File f = tmp.resolve("paper-global.yml").toFile();
+        YamlConfiguration seed = new YamlConfiguration();
+        seed.set("misc.max-joins-per-tick", 5);
+        seed.save(f);
+
+        assertThat(ServerFileUtil.setYamlStrict(f.getPath(), "misc.max-joins-per-tick", 3))
+                .isEqualTo(ServerFileUtil.WriteResult.WROTE);
+        assertThat(ServerFileUtil.getYamlString(f.getPath(), "misc.max-joins-per-tick")).isEqualTo("3");
+        assertThat(strayTempFiles()).isZero();
+    }
+
+    @Test
+    void yamlFailureLeavesOriginalIntact() throws Exception {
+        // A directory as the target forces every stage of the write to fail,
+        // standing in for a crash or full disk mid-write.
+        File dir = tmp.resolve("spigot.yml").toFile();
+        assertThat(dir.mkdir()).isTrue();
+
+        assertThat(ServerFileUtil.setYaml(dir.getPath(), "a.b", 1)).isFalse();
+        assertThat(ServerFileUtil.setYamlStrict(dir.getPath(), "a.b", 1))
+                .as("a directory is not a file")
+                .isEqualTo(ServerFileUtil.WriteResult.NO_FILE);
+        assertThat(dir).isDirectory();
+        assertThat(strayTempFiles()).isZero();
+    }
+
+    @Test
+    void propertiesFailureLeavesOriginalIntact() throws Exception {
+        File dir = tmp.resolve("server.properties").toFile();
+        assertThat(dir.mkdir()).isTrue();
+
+        assertThat(ServerFileUtil.setProperty(dir.getPath(), "online-mode", "true")).isFalse();
+        assertThat(ServerFileUtil.setPropertyStrict(dir.getPath(), "online-mode", "true"))
+                .as("a directory is not a file")
+                .isEqualTo(ServerFileUtil.WriteResult.NO_FILE);
+        assertThat(dir).isDirectory();
+        assertThat(strayTempFiles()).isZero();
     }
 }
