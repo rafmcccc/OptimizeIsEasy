@@ -2,6 +2,7 @@ package com.optimizeiseasy.core.modules;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.objects.AbstractModule;
+import com.optimizeiseasy.core.support.Scheduler;
 import com.optimizeiseasy.core.support.SupportManager;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -58,12 +59,7 @@ public class WorldCleanerModule extends AbstractModule {
 
     @Override
     public void load() {
-        SupportManager sm = SupportManager.getInstance();
-        if (sm != null) {
-            task = sm.getFork().runTimer(false, this::runPurge, interval, interval, TimeUnit.SECONDS);
-        } else {
-            task = Bukkit.getScheduler().runTaskTimer(plugin, this::runPurge, interval * 20L, interval * 20L);
-        }
+        task = Scheduler.runTimer(plugin, false, this::runPurge, interval, interval, TimeUnit.SECONDS);
         if (plugin.isDebug()) plugin.getLogger().fine("WorldCleaner scheduled every " + interval + "s");
     }
 

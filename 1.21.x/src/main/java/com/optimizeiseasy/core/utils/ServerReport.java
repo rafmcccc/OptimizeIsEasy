@@ -21,8 +21,7 @@ public class ServerReport {
     }
 
     public void run(CommandSender sender) {
-        double tps = 20.0;
-        try { tps = Bukkit.getTPS()[0]; } catch (Throwable ignored) {}
+        double tps = SupportManager.currentTps();
         double mspt = 0;
         try {
             SupportManager sm = SupportManager.getInstance();

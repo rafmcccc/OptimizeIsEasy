@@ -2,7 +2,7 @@ package com.optimizeiseasy.core.modules;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.objects.AbstractModule;
-import com.optimizeiseasy.core.support.SupportManager;
+import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.ServerTickManager;
@@ -67,36 +67,21 @@ public class HibernateModule extends AbstractModule implements Listener {
 
         // Periodic re-freeze check - use fork for Folia GlobalRegionScheduler support
         if (checkIntervalSeconds > 0) {
-            SupportManager sm = SupportManager.getInstance();
-            if (sm != null) {
-                checkTask = sm.getFork().runTimer(false, () -> {
-                    if (server.getOnlinePlayers().isEmpty() && tickManager != null && !tickManager.isFrozen()) {
-                        freeze("No players online and server was not frozen. Freezing now.");
-                    }
-                }, checkIntervalSeconds, checkIntervalSeconds, TimeUnit.SECONDS);
-            } else {
-                long ticks = checkIntervalSeconds * 20L;
-                checkTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-                    if (server.getOnlinePlayers().isEmpty() && tickManager != null && !tickManager.isFrozen()) {
-                        freeze("No players online and server was not frozen. Freezing now.");
-                    }
-                }, ticks, ticks);
-            }
+            checkTask = Scheduler.runTimer(plugin, false, () -> {
+                if (server.getOnlinePlayers().isEmpty() && tickManager != null && !tickManager.isFrozen()) {
+                    freeze("No players online and server was not frozen. Freezing now.");
+                }
+            }, checkIntervalSeconds, checkIntervalSeconds, TimeUnit.SECONDS);
         }
 
         // Initial freeze if empty - use GlobalRegionScheduler on Folia
         if (server.getOnlinePlayers().isEmpty() && tickManager != null && !tickManager.isFrozen()) {
-            SupportManager sm = SupportManager.getInstance();
             Runnable r = () -> {
                 if (server.getOnlinePlayers().isEmpty() && tickManager != null && !tickManager.isFrozen()) {
                     freeze("Server is frozen until a player joins.");
                 }
             };
-            if (sm != null && sm.getFork() != null) {
-                sm.getFork().runNow(false, null, r);
-            } else {
-                Bukkit.getScheduler().runTask(plugin, r);
-            }
+            Scheduler.runNow(plugin, false, null, r);
         }
 
         if (plugin.isDebug()) {

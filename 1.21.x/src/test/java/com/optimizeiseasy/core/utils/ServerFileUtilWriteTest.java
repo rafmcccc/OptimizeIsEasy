@@ -96,4 +96,52 @@ class ServerFileUtilWriteTest {
                 .isEqualTo(ServerFileUtil.WriteResult.WROTE);
         assertThat(ServerFileUtil.getProperty(f.getPath(), "online-mode")).isEqualTo("true");
     }
+
+    @Test
+    void corruptYamlIsNeverOverwritten() throws Exception {
+        File f = tmp.resolve("spigot.yml").toFile();
+        String broken = "world-settings:\n  default: [unclosed\n\tbad-indent: : :\n";
+        java.nio.file.Files.writeString(f.toPath(), broken);
+
+        assertThat(ServerFileUtil.setYaml(f.getPath(), "world-settings.default.view-distance", 6))
+                .as("non-strict write must refuse a file it cannot parse")
+                .isFalse();
+        assertThat(ServerFileUtil.setYamlStrict(f.getPath(), "world-settings.default.view-distance", 6))
+                .isEqualTo(ServerFileUtil.WriteResult.FAILED);
+        assertThat(java.nio.file.Files.readString(f.toPath()))
+                .as("broken file must be left byte-identical")
+                .isEqualTo(broken);
+    }
+
+    @Test
+    void propertiesEditPreservesCommentsAndOrder() throws Exception {
+        File f = tmp.resolve("server.properties").toFile();
+        String original = "#Minecraft server properties\n#Tue Jan 01 00:00:00 UTC 2026\nonline-mode=false\nmotd=A server\nview-distance=10\n";
+        java.nio.file.Files.writeString(f.toPath(), original);
+
+        assertThat(ServerFileUtil.setPropertyStrict(f.getPath(), "online-mode", "true"))
+                .isEqualTo(ServerFileUtil.WriteResult.WROTE);
+
+        java.util.List<String> lines = java.nio.file.Files.readAllLines(f.toPath());
+        assertThat(lines.get(0)).isEqualTo("#Minecraft server properties");
+        assertThat(lines).containsExactly(
+                "#Minecraft server properties",
+                "#Tue Jan 01 00:00:00 UTC 2026",
+                "online-mode=true",
+                "motd=A server",
+                "view-distance=10");
+    }
+
+    @Test
+    void nonStrictPropertyWriteAppendsWithoutTouchingComments() throws Exception {
+        File f = tmp.resolve("server.properties").toFile();
+        java.nio.file.Files.writeString(f.toPath(), "#hello\nmotd=A server\n");
+
+        assertThat(ServerFileUtil.setProperty(f.getPath(), "view-distance", "10")).isTrue();
+
+        java.util.List<String> lines = java.nio.file.Files.readAllLines(f.toPath());
+        assertThat(lines.get(0)).isEqualTo("#hello");
+        assertThat(lines.get(1)).isEqualTo("motd=A server");
+        assertThat(lines.get(lines.size() - 1)).isEqualTo("view-distance=10");
+    }
 }

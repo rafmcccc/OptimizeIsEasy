@@ -2,7 +2,7 @@ package com.optimizeiseasy.core.modules;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.objects.AbstractModule;
-import com.optimizeiseasy.core.support.SupportManager;
+import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -67,9 +67,7 @@ public class AFKOptimizerModule extends AbstractModule implements Listener, Runn
     public void load() {
         Bukkit.getPluginManager().registerEvents(this, plugin);
         for (Player p: Bukkit.getOnlinePlayers()) afkMap.putIfAbsent(p.getUniqueId(), new AFKData(p.getLocation()));
-        SupportManager sm = SupportManager.getInstance();
-        if (sm != null) task = sm.getFork().runTimer(false, this, checkInterval, checkInterval, TimeUnit.MILLISECONDS);
-        else task = Bukkit.getScheduler().runTaskTimer(plugin, this, checkInterval/50L, checkInterval/50L);
+        task = Scheduler.runTimer(plugin, false, this, checkInterval, checkInterval, TimeUnit.MILLISECONDS);
     }
 
     @Override

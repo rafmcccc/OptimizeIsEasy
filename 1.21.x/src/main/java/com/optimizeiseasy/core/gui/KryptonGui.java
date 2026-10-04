@@ -2,6 +2,7 @@ package com.optimizeiseasy.core.gui;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.modules.ServerTunerModule;
+import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -225,16 +226,16 @@ public class KryptonGui implements Listener {
                 p.closeInventory();
                 String profile = sel.profile;
                 boolean pregenerated = sel.pregenerated;
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                Scheduler.runLaterTicks(plugin, () -> {
                     tuner.runProfile(profile, pregenerated, p);
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    Scheduler.runLaterTicks(plugin, () -> {
                         if (p.isOnline()) open(p);
                     }, 40L);
                 }, 1L);
             }
             case SLOT_BACK -> {
                 p.closeInventory();
-                if (plugin.getGui() != null) Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (plugin.getGui() != null) Scheduler.runLaterTicks(plugin, () -> {
                     if (p.isOnline()) plugin.getGui().open(p);
                 }, 2L);
             }

@@ -8,7 +8,7 @@
 
 [![Paper 1.21.x](https://img.shields.io/badge/Paper-1.21.x-blue?style=flat-square)](https://papermc.io)
 [![Purpur](https://img.shields.io/badge/Purpur-supported-blue?style=flat-square)](#)
-[![Folia](https://img.shields.io/badge/Folia-supported-blue?style=flat-square)](#)
+[![Folia](https://img.shields.io/badge/Folia-partial-yellow?style=flat-square)](#faq)
 [![Java 21](https://img.shields.io/badge/Java-21-orange?style=flat-square)](https://adoptium.net)
 [![Modules 17](https://img.shields.io/badge/Modules-17-purple?style=flat-square)](#features)
 [![License MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](#license)
@@ -363,7 +363,7 @@ These module keys now take precedence over the older `kos.*` keys in `config.yml
 ## Installation
 
 1. Drop the jar into `plugins/`
-2. Restart your Paper 1.21.x server. Works on Paper, Purpur and Folia plus any Paper fork
+2. Restart your Paper 1.21.x server. Works on Paper, Purpur plus any Paper fork; Folia support is partial (see FAQ)
 3. Run `/optimize` and `/exploitfix` in-game to open the menus, or `/optimize status` and `/exploitfix check` for the text output
 
 That is it. No extra setup.
@@ -378,9 +378,25 @@ cd OptimizeIsEasy/1.21.x
 ./gradlew clean build
 ```
 
-Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.1.0.jar`.
+Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.1.1.jar`.
 
-Requires Java 21, Paper API 1.21.11. Runs on Paper, Purpur, Folia, Leaf, Gale and Paper forks. No Paperweight, no NMS toolchain.
+Requires Java 21, Paper API 1.21.11. Runs on Paper, Purpur, Leaf, Gale and Paper forks; Folia is partial (see FAQ). No Paperweight, no NMS toolchain.
+
+---
+
+## Upgrading to 2.1.1
+
+Drop the new jar in and restart. Config files are merged in place, so nothing to delete. Five things changed that you will notice:
+
+**LagShield redstone throttling works independently now.** Disabling `entity_spawn` no longer silently kills the `redstone` check, and all throttles skip cleanly when the server exposes no usable TPS source (Folia) instead of acting on a fake 20.0.
+
+**RedstoneLimiter counts per chunk with one timer.** The per-event delayed task is gone, counting is thread-safe, and the dead `click_cooldown` key was removed.
+
+**Corrupt server files are never overwritten.** A YAML file that fails to parse aborts the write (and logs it) instead of being replaced with a near-empty document. `server.properties` edits now preserve comments and key order.
+
+**Dynamic view/simulation/tick changes are restored on disable.** LagShield snapshots per-world originals before its first change. The dead `mobai` threshold was removed.
+
+**Folia is partial, not supported.** Scheduling goes through the region scheduler, but TPS-based throttling stays off on Folia. The badge and install notes say so until a live Folia test passes.
 
 ---
 
@@ -438,6 +454,9 @@ Yes, but only through the `leaf` and `gale` sections of the profile, and only fo
 
 **Why did a profile run say some keys were skipped?**  
 Because your server version does not have them. Forks add and rename options between Minecraft versions, and an absent key is skipped rather than written, so nothing your server cannot read is ever added. The count in the summary is the number of those keys.
+
+**Does it work on Folia?**  
+Partially. Scheduling goes through the region scheduler, but `Bukkit.getTPS()` does not exist on Folia, so LagShield throttling and dynamic view/simulation/tick adjustments stay off there and log a warning instead of acting on a fake 20.0 reading. Untested on a live Folia server — please report what you see.
 
 ---
 

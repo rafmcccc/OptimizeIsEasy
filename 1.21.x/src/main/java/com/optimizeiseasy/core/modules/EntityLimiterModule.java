@@ -2,6 +2,7 @@ package com.optimizeiseasy.core.modules;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.objects.AbstractModule;
+import com.optimizeiseasy.core.support.Scheduler;
 import com.optimizeiseasy.core.support.SupportManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -103,8 +104,7 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
                     }
                 }
             };
-            if (sm != null) overflowTask = sm.getFork().runTimer(false, purge, overflowInterval, overflowInterval, TimeUnit.SECONDS);
-            else overflowTask = Bukkit.getScheduler().runTaskTimer(plugin, purge, overflowInterval*20L, overflowInterval*20L);
+            overflowTask = Scheduler.runTimer(plugin, false, purge, overflowInterval, overflowInterval, TimeUnit.SECONDS);
         }
     }
 

@@ -1,10 +1,9 @@
 plugins {
     java
-    id("com.github.johnrengelman.shadow") version "8.1.1" apply false
 }
 
 group = "com.optimizeiseasy"
-version = "2.1.0"
+version = "2.1.1"
 
 repositories {
     mavenCentral()

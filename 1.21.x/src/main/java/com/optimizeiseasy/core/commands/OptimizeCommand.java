@@ -73,8 +73,7 @@ public class OptimizeCommand implements TabExecutor {
     }
 
     private void handleStatus(CommandSender sender) {
-        double tps = 20.0;
-        try { tps = Bukkit.getTPS()[0]; } catch (Throwable ignored) {}
+        double tps = SupportManager.currentTps();
         double mspt = 0;
         SupportManager sm = SupportManager.getInstance();
         if (sm != null && sm.isSupportMspt()) {

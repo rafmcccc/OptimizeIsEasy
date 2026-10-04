@@ -2,6 +2,7 @@ package com.optimizeiseasy.core.gui;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.modules.ExploitDBModule;
+import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -237,7 +238,7 @@ public class EdbGui implements Listener {
             }
             case SLOT_BACK -> {
                 p.closeInventory();
-                if (plugin.getGui() != null) Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (plugin.getGui() != null) Scheduler.runLaterTicks(plugin, () -> {
                     if (p.isOnline()) plugin.getGui().open(p);
                 }, 2L);
             }
@@ -283,7 +284,7 @@ public class EdbGui implements Listener {
     }
 
     private void refreshLater(Player p) {
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        Scheduler.runLaterTicks(plugin, () -> {
             if (p.isOnline()) open(p);
         }, 5L);
     }

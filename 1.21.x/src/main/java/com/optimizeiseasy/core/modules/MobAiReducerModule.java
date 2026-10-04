@@ -7,7 +7,7 @@ import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.modules.ai.OptimizedBreedGoal;
 import com.optimizeiseasy.core.modules.ai.OptimizedTemptGoal;
 import com.optimizeiseasy.core.objects.AbstractModule;
-import com.optimizeiseasy.core.support.SupportManager;
+import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -309,33 +309,23 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
     }
 
     private void runOnEntityThread(Entity entity, Runnable task) {
+        Location loc;
         try {
-            SupportManager manager = SupportManager.getInstance();
-            if (manager != null) {
-                Location loc;
-                try {
-                    loc = entity.getLocation();
-                } catch (Throwable t) {
-                    loc = null;
-                }
-                // NB: sync (not raw-async) so entity mutation stays on the region thread
-                // on Folia/Paper and on the main thread on Spigot. The `async` flag only
-                // controls whether the work is deferred through the scheduler at all.
-                manager.getFork().runNow(false, loc, task);
-                return;
-            }
-        } catch (Throwable ignored) {
-            // Fall through to a plain sync task below.
+            loc = entity.getLocation();
+        } catch (Throwable t) {
+            if (plugin.isDebug()) plugin.getLogger().fine("MobAiReducer location lookup failed: " + t.getMessage());
+            loc = null;
         }
+        // NB: sync (not raw-async) so entity mutation stays on the region thread
+        // on Folia/Paper and on the main thread on Spigot. The `async` flag only
+        // controls whether the work is deferred through the scheduler at all.
+        BukkitTask scheduled = Scheduler.runNow(plugin, false, loc, task);
+        if (scheduled != null) return;
+        // Scheduler unavailable (e.g. disabling); run inline as last resort.
         try {
-            Bukkit.getScheduler().runTask(plugin, task);
-        } catch (Throwable ignored) {
-            // Scheduler unavailable (e.g. disabling); run inline as last resort.
-            try {
-                task.run();
-            } catch (Throwable ignored2) {
-                // Nothing left to try.
-            }
+            task.run();
+        } catch (Throwable t) {
+            if (plugin.isDebug()) plugin.getLogger().fine("MobAiReducer inline task failed: " + t.getMessage());
         }
     }
 
@@ -348,43 +338,25 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
                 try {
                     at = world.getSpawnLocation();
                 } catch (Throwable t) {
+                    if (plugin.isDebug()) plugin.getLogger().fine("MobAiReducer spawn lookup failed: " + t.getMessage());
                     continue;
                 }
                 Location anchor = at;
-                try {
-                    SupportManager manager = SupportManager.getInstance();
-                    if (manager != null) {
-                        manager.getFork().runNow(false, anchor, () -> {
-                            for (LivingEntity entity : world.getLivingEntities()) {
-                                if (isEnabled(entity)) optimize(entity, true);
-                            }
-                        });
-                        continue;
+                BukkitTask scheduled = Scheduler.runNow(plugin, false, anchor, () -> {
+                    for (LivingEntity entity : world.getLivingEntities()) {
+                        if (isEnabled(entity)) optimize(entity, true);
                     }
-                } catch (Throwable ignored) {
-                    // Fall through to the plain sync task below.
-                }
-                try {
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        for (LivingEntity entity : world.getLivingEntities()) {
-                            if (isEnabled(entity)) optimize(entity, true);
-                        }
-                    });
-                } catch (Throwable ignored) {
-                    // World went away mid-enable; skip it.
+                });
+                if (scheduled == null && plugin.isDebug()) {
+                    plugin.getLogger().fine("MobAiReducer force-load scan skipped for " + world.getName());
                 }
             }
         }
         try {
-            SupportManager manager = SupportManager.getInstance();
-            if (manager != null) {
-                purgeTask = manager.getFork().runTimer(true, this::purge,
-                        60, Math.max(1, purgeInterval), TimeUnit.SECONDS);
-            } else {
-                purgeTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin,
-                        this::purge, 1200L, Math.max(1, purgeInterval) * 20L);
-            }
-        } catch (Throwable ignored) {
+            purgeTask = Scheduler.runTimer(plugin, true, this::purge,
+                    60, Math.max(1, purgeInterval), TimeUnit.SECONDS);
+        } catch (Throwable t) {
+            if (plugin.isDebug()) plugin.getLogger().fine("MobAiReducer purge task failed: " + t.getMessage());
             purgeTask = null;
         }
     }

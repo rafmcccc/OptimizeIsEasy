@@ -22,6 +22,3 @@ RedstoneLimiter:
         - SAND
         - RED_SAND
         - GRAVEL
-
-    # Cooldown (in ms) for levers, buttons, redstone torches, etc.
-    click_cooldown: 1500

@@ -13,7 +13,6 @@ LagShield:
       redstone: 17.5           # Disables redstone updates below this TPS.
       projectiles: 15          # Cancels projectiles (arrows, snowballs, etc.) below this TPS.
       leaves_decay: 18.5       # Stops leaf decay below this TPS.
-      mobai: 17.0              # Disables mob AI below this TPS.
       liquid_flow: 18          # Stops liquid flow (water/lava) below this TPS.
       explosions: 18.5         # Cancels explosions below this TPS.
       fireworks: 18.5          # Cancels fireworks below this TPS.

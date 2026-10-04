@@ -3,6 +3,7 @@ package com.optimizeiseasy.core.gui;
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.modules.HibernateModule;
 import com.optimizeiseasy.core.objects.AbstractModule;
+import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -135,7 +136,7 @@ public class OptimizeGui implements Listener {
         // Hibernate toggle
         if (e.getSlot() == 4) {
             p.performCommand("optimize toggle");
-            Bukkit.getScheduler().runTaskLater(plugin, () -> open(p), 5L);
+            Scheduler.runLaterTicks(plugin, () -> open(p), 5L);
             return;
         }
         if (e.getSlot() == 45) {
@@ -181,7 +182,7 @@ public class OptimizeGui implements Listener {
                 }
             }
             p.performCommand("optimize toggle " + name);
-            Bukkit.getScheduler().runTaskLater(plugin, () -> open(p), 5L);
+            Scheduler.runLaterTicks(plugin, () -> open(p), 5L);
         }
     }
 }

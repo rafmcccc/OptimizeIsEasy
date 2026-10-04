@@ -28,6 +28,33 @@ public class PaperSupport extends AbstractFork {
     @Override public boolean isSupportMspt() { return true; }
 
     @Override
+    public double getTps() {
+        try {
+            return Bukkit.getTPS()[0];
+        } catch (Throwable t) {
+            try {
+                return tpsFromMspt(Bukkit.getAverageTickTime());
+            } catch (Throwable t2) {
+                return 20.0;
+            }
+        }
+    }
+
+    @Override
+    public boolean isTpsReliable() {
+        try {
+            Bukkit.getTPS();
+            return true;
+        } catch (Throwable t) {
+            try {
+                return Bukkit.getAverageTickTime() > 0;
+            } catch (Throwable t2) {
+                return false;
+            }
+        }
+    }
+
+    @Override
     public BukkitTask runNow(boolean async, @Nullable Location loc, Runnable run) {
         if (!plugin.isEnabled()) return new FoliaTask(plugin, null);
         ScheduledTask task;

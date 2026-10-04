@@ -2,7 +2,7 @@ package com.optimizeiseasy.core.modules;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.objects.AbstractModule;
-import com.optimizeiseasy.core.support.SupportManager;
+import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -209,15 +209,9 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
                 }
             }
         };
-        SupportManager sm = SupportManager.getInstance();
         long validateMs = Math.max(1000, checkInterval);
-        if (sm != null) {
-            validateTask = sm.getFork().runTimer(false, validate, validateMs, validateMs, TimeUnit.MILLISECONDS);
-            cleanupTask = sm.getFork().runTimer(false, cleanup, 60000, 60000, TimeUnit.MILLISECONDS);
-        } else {
-            validateTask = Bukkit.getScheduler().runTaskTimer(plugin, validate, validateMs / 50L, validateMs / 50L);
-            cleanupTask = Bukkit.getScheduler().runTaskTimer(plugin, cleanup, 1200L, 1200L);
-        }
+        validateTask = Scheduler.runTimer(plugin, false, validate, validateMs, validateMs, TimeUnit.MILLISECONDS);
+        cleanupTask = Scheduler.runTimer(plugin, false, cleanup, 60000, 60000, TimeUnit.MILLISECONDS);
     }
 
     @Override

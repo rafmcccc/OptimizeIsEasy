@@ -16,6 +16,25 @@ public class SpigotSupport extends AbstractFork {
     @Override public boolean isSupportMspt() { return false; }
 
     @Override
+    public double getTps() {
+        try {
+            return Bukkit.getTPS()[0];
+        } catch (Throwable t) {
+            return 20.0;
+        }
+    }
+
+    @Override
+    public boolean isTpsReliable() {
+        try {
+            Bukkit.getTPS();
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    @Override
     public BukkitTask runNow(boolean async, @Nullable Location loc, Runnable run) {
         if (!plugin.isEnabled()) return null;
         return async ? Bukkit.getScheduler().runTaskAsynchronously(plugin, run) : Bukkit.getScheduler().runTask(plugin, run);

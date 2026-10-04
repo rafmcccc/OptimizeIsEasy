@@ -2,6 +2,7 @@ package com.optimizeiseasy.core.hooks;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.modules.HibernateModule;
+import com.optimizeiseasy.core.support.SupportManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -23,10 +24,10 @@ public class PlaceholderHook extends PlaceholderExpansion {
         String p = params.toLowerCase();
         try {
             switch (p) {
-                case "tps": return String.format("%.2f", Bukkit.getTPS()[0]);
-                case "tps_1m": return String.format("%.2f", Bukkit.getTPS()[0]);
-                case "tps_5m": return String.format("%.2f", Bukkit.getTPS()[1]);
-                case "tps_15m": return String.format("%.2f", Bukkit.getTPS()[2]);
+                case "tps": return String.format("%.2f", SupportManager.currentTpsArray()[0]);
+                case "tps_1m": return String.format("%.2f", SupportManager.currentTpsArray()[0]);
+                case "tps_5m": return String.format("%.2f", SupportManager.currentTpsArray()[1]);
+                case "tps_15m": return String.format("%.2f", SupportManager.currentTpsArray()[2]);
                 case "mspt": {
                     try { return String.format("%.2f", Bukkit.getAverageTickTime()); } catch (Throwable t) { return "0"; }
                 }

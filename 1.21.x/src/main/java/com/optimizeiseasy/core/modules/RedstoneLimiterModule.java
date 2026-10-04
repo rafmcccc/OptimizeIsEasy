@@ -2,41 +2,48 @@ package com.optimizeiseasy.core.modules;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import com.optimizeiseasy.core.objects.AbstractModule;
-import com.optimizeiseasy.core.support.SupportManager;
+import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.scheduler.BukkitTask;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RedstoneLimiterModule extends AbstractModule implements Listener {
     private int redstoneLimit, pistonLimit;
     private boolean breakRedstone, breakPiston;
-    private int clickCooldown;
-    private final Map<Chunk, Integer> redstoneTicks = new HashMap<>();
-    private final Map<Chunk, Long> cooldowns = new HashMap<>();
+    /**
+     * Per-chunk event counts, reset by a single periodic task. Keyed by world
+     * UUID plus chunk coordinates (not {@link Chunk}) so entries never pin
+     * chunk objects and stay safe on Folia region threads.
+     */
+    private final Map<ChunkKey, AtomicInteger> redstoneTicks = new ConcurrentHashMap<>();
+    private BukkitTask resetTask;
 
     public RedstoneLimiterModule(OptimizeIsEasyPlugin plugin) { super(plugin, "RedstoneLimiter"); }
+
+    private record ChunkKey(UUID world, int x, int z) {
+        static ChunkKey of(Chunk chunk) {
+            return new ChunkKey(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ());
+        }
+    }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onRedstone(BlockRedstoneEvent e) {
         if (!canContinue(e.getBlock().getWorld())) return;
-        Chunk chunk = e.getBlock().getChunk();
-        int count = redstoneTicks.getOrDefault(chunk, 0) + 1;
-        redstoneTicks.put(chunk, count);
-        // Reset count next second via fork for Folia support
-        SupportManager sm = SupportManager.getInstance();
-        if (sm != null) sm.getFork().runLater(false, () -> redstoneTicks.remove(chunk), 1, TimeUnit.SECONDS);
-        else Bukkit.getScheduler().runTaskLater(plugin, () -> redstoneTicks.remove(chunk), 20L);
+        int count = redstoneTicks.computeIfAbsent(ChunkKey.of(e.getBlock().getChunk()), k -> new AtomicInteger())
+                .incrementAndGet();
         if (count > redstoneLimit) {
             e.setNewCurrent(0);
             if (breakRedstone) e.getBlock().setType(Material.AIR);
@@ -54,7 +61,10 @@ public class RedstoneLimiterModule extends AbstractModule implements Listener {
     }
 
     @Override
-    public void load() { Bukkit.getPluginManager().registerEvents(this, plugin); }
+    public void load() {
+        Bukkit.getPluginManager().registerEvents(this, plugin);
+        resetTask = Scheduler.runTimer(plugin, false, redstoneTicks::clear, 1, 1, TimeUnit.SECONDS);
+    }
 
     @Override
     public boolean loadConfig() {
@@ -62,10 +72,20 @@ public class RedstoneLimiterModule extends AbstractModule implements Listener {
         pistonLimit = getSection().getInt("ticks_limit.piston", 50);
         breakRedstone = getSection().getBoolean("break_block.redstone", false);
         breakPiston = getSection().getBoolean("break_block.piston", false);
-        clickCooldown = getSection().getInt("click_cooldown", 1500);
         return true;
     }
 
     @Override
-    public void disable() { HandlerList.unregisterAll(this); redstoneTicks.clear(); }
+    public void disable() {
+        HandlerList.unregisterAll(this);
+        if (resetTask != null) {
+            try {
+                resetTask.cancel();
+            } catch (Exception ex) {
+                if (plugin.isDebug()) plugin.getLogger().fine("RedstoneLimiter reset cancel failed: " + ex.getMessage());
+            }
+            resetTask = null;
+        }
+        redstoneTicks.clear();
+    }
 }

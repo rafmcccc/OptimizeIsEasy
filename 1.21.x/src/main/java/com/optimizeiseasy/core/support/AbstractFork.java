@@ -22,4 +22,19 @@ public abstract class AbstractFork {
     public abstract BukkitTask runNow(boolean async, Location loc, Runnable runnable);
     public abstract BukkitTask runLater(boolean async, Runnable runnable, long delay, TimeUnit unit);
     public abstract BukkitTask runTimer(boolean async, Runnable runnable, long initialDelay, long delay, TimeUnit unit);
+
+    /**
+     * Current 1-minute TPS. Falls back to an MSPT-derived estimate and
+     * finally to 20.0 when the server exposes neither.
+     */
+    public abstract double getTps();
+
+    /** False when no usable TPS source exists (e.g. Folia without tick times). */
+    public abstract boolean isTpsReliable();
+
+    /** Clamp an MSPT-derived TPS estimate into (0, 20]. Returns 20.0 when mspt is unusable. */
+    protected static double tpsFromMspt(double mspt) {
+        if (mspt <= 0 || Double.isNaN(mspt) || Double.isInfinite(mspt)) return 20.0;
+        return Math.min(20.0, 1000.0 / mspt);
+    }
 }
