@@ -399,9 +399,21 @@ cd OptimizeIsEasy/1.21.x
 ./gradlew clean build
 ```
 
-Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.1.1.jar`.
+Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.1.2.jar`.
 
 Requires Java 21, Paper API 1.21.11. Runs on Paper, Purpur, Leaf, Gale and Paper forks; Folia is partial (see FAQ). No Paperweight, no NMS toolchain.
+
+---
+
+## Upgrading to 2.1.2
+
+Drop the new jar in and restart. Config files are merged in place, so nothing to delete. Three things changed that you will notice:
+
+**A failed backup now skips the file instead of writing it.** If `plugins/OptimizeIsEasy/backups/` cannot be written, ServerTuner and ExploitDB count that file as failed and tell you which one, rather than patching without a safety copy.
+
+**Server-file writes are atomic.** YAML and `server.properties` are written to a temp file and moved over the original, so a crash can never leave a half-written server file behind.
+
+**Failures are noisier.** Ten previously silent failure paths (conflict scan, restart alert, proxy detection, AI surgery and others) now log at WARNING; noisy per-event paths log at debug. See the console instead of guessing.
 
 ---
 
