@@ -31,7 +31,7 @@ Ground items, stray mobs, projectile spam. They pile up and your TPS drops. Opti
 When your server starts to choke, it does not just watch. It throttles hoppers, caps redstone, trims explosions, and lowers view distance just enough to keep you above 19 TPS. No manual panic.
 
 **It tunes your server files.**  
-One command applies a full optimisation profile to `server.properties`, `bukkit.yml`, `spigot.yml`, Paper, Purpur and Pufferfish configs. Originals are backed up first, and a restart applies everything.
+One command applies a full optimisation profile to `server.properties`, `bukkit.yml`, `spigot.yml`, the Paper global and world configs, Purpur, Pufferfish, Gale and Leaf. Originals are backed up first, and a restart applies everything.
 
 ---
 
@@ -62,7 +62,40 @@ Caps TNT, creeper, crystal and fireball yield. Stops chain reactions from nuking
 Detects AFK by position or rotation. Kick, teleport to an AFK world, or just hide entities to save bandwidth. You choose.
 
 ### ServerTuner (KOS)
-Applies curated optimisation profiles to your server files. Four profiles ship with the jar: `YouHaveTrouble.kos`, `FarmFriendly.kos`, `Balanced.kos`, `LowEnd.kos`. Every write is type-checked, skipped keys are reported, and originals are backed up to `plugins/OptimizeIsEasy/backups/`. Pick a profile in the Krypton GUI and hit apply, or run `dry-run` first to see the diff without writing. Hide profiles you never want with `denied-profiles`.
+Applies curated optimisation profiles to your server files. Eight profiles ship with the jar: `YouHaveTrouble.kos`, `FarmFriendly.kos`, `Balanced.kos`, `LowEnd.kos`, `HighEnd.kos`, `VanillaPlus.kos`, `LobbyGames.kos`, `Anarchy.kos`. Every write is type-checked, skipped keys are reported, and originals are backed up to `plugins/OptimizeIsEasy/backups/`. Pick a profile in the Krypton GUI and hit apply, or run `dry-run` first to see the diff without writing. Hide profiles you never want with `denied-profiles`.
+
+A `.kos` file is one commented YAML document. Each top-level section maps to exactly one server file, and the whole section is skipped when that file does not exist, so the same profile is safe on Paper, Purpur, Pufferfish, Gale and Leaf.
+
+| Section in the profile | Server file |
+|---|---|
+| `server` | `server.properties` |
+| `craftbukkit` | `bukkit.yml` |
+| `spigot` | `spigot.yml` |
+| `paper` | `config/paper-world-defaults.yml` |
+| `paper-global` | `config/paper-global.yml` |
+| `purpur` | `purpur.yml` |
+| `pufferfish` | `pufferfish.yml` |
+| `gale` | `config/gale-global.yml` (Leaf ships this too) |
+| `leaf` | `config/leaf-global.yml` |
+
+Every profile is commented key by key, so open the file before you run it. Which one to pick:
+
+- `YouHaveTrouble.kos` — default, solid all-rounder from the YouHaveTrouble guide.
+- `Balanced.kos` — middle ground between aggressive and permissive.
+- `HighEnd.kos` — powerful dedicated box, view 10, fast farms, generous caps.
+- `VanillaPlus.kos` — near-vanilla SMP, safe wins only, mechanics untouched.
+- `FarmFriendly.kos` — permissive, farms and redstone keep full speed.
+- `LowEnd.kos` — weak hardware or busy server, tight view and spawn caps.
+- `LobbyGames.kos` — lobbies, creative plots, minigames. Fast cleanup, tiny mobs.
+- `Anarchy.kos` — tightest caps we ship, for high-population/grief-heavy servers.
+
+Three rules worth knowing:
+
+- **A missing key is never touched.** Leave it out of the profile and your server file keeps its own value.
+- **`default` means "leave it alone".** Handy for per-range values you do not want to override.
+- **A key your server version does not have is skipped, never invented.** Forks rename options between Minecraft versions, so the run reports how many keys were absent instead of writing something the server ignores.
+
+Shipped profiles are only copied into `plugins/OptimizeIsEasy/profiles/` when that file does not exist yet, so **your edited profiles are never overwritten**. If you want the new keys after an update, delete the profile you want refreshed (it is re-created on the next restart) or copy the section you need out of a fresh jar.
 
 ### ExploitDB (EDB)
 Checks and patches **22** known server-file exploits, from armour-stand lag machines to creative-slot NBT injection. See the table below. Restart required after patching. Patch straight from the GUI with a shift-click.
@@ -84,7 +117,7 @@ Three native Bukkit menus, no inventory library in the way.
 | Menu | Open it with | What it does |
 |------|--------------|--------------|
 | **Modules** | `/optimize` or `/optimize gui` | Every module as a toggle. Bottom row holds Krypton, ExploitDB, Border, Report and version info. |
-| **Krypton (KOS)** | `/optimize krypton`, `/optimize kos gui`, or the pickaxe in the module list | Four profiles, a pre-generated yes/no picker, and an apply button. Profiles on `denied-profiles` are not listed. |
+| **Krypton (KOS)** | `/optimize krypton`, `/optimize kos gui`, or the pickaxe in the module list | Eight profiles, a pre-generated yes/no picker, and an apply button. Profiles on `denied-profiles` are not listed. |
 | **ExploitDB** | `/exploitfix` (or `/exploit`), `/exploitfix gui`, or the shield in the module list | All 22 exploits, two pages, with re-check, patch all, restart flag and back. |
 | **Border** | `/border`, `/optimize border` | Size, center, shrink, damage, warning distance. |
 
@@ -337,13 +370,13 @@ cd OptimizeIsEasy/1.21.x
 
 Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.0.0.jar`.
 
-Requires Java 21, Paper API 1.21.11. Runs on Paper, Purpur, Folia and Paper forks. No Paperweight, no NMS toolchain.
+Requires Java 21, Paper API 1.21.11. Runs on Paper, Purpur, Folia, Leaf, Gale and Paper forks. No Paperweight, no NMS toolchain.
 
 ---
 
 ## Upgrading to 2.0.0
 
-Drop the new jar in and restart. Config files are merged in place, so nothing to delete. Five things changed that you will notice:
+Drop the new jar in and restart. Config files are merged in place, so nothing to delete. Six things changed that you will notice:
 
 **Bare `/optimize` and `/exploitfix` now open a GUI.** For players only, console still gets the text output. Set `gui.auto-open: false` in `config.yml` if you want the old usage text back. `/exploitfix` is also reachable as `/exploit`.
 
@@ -354,6 +387,8 @@ Drop the new jar in and restart. Config files are merged in place, so nothing to
 **Patching is stricter and safer.** A config key that is missing from your server files is now skipped and logged by name instead of being written — the old code would create the key and then report it as fixed. EDB also copies your files to `plugins/OptimizeIsEasy/backups/` before writing; in 1.0.0 it wrote with no backup at all.
 
 **`modules/ServerTuner.yml` wins over `config.yml`.** `default-profile`, `allow-override-pregenerated` and the new `world-is-pregenerated` are read from the module file first. The old `kos.*` keys in `config.yml` still work as a fallback, so existing installs keep their values. If you had edited `default-profile` in both places, the module file is the one that counts now.
+
+**The KOS profiles cover more, and explain themselves.** All eight shipped `.kos` files are now commented key by key, and they gained `paper-global`, `gale` and `leaf` sections on top of the new bukkit, spigot and Purpur keys. Leaf and Gale writes are strict: a key your version does not have is skipped, and the run tells you how many. Existing `profiles/*.kos` on disk are never overwritten, so delete the one you want refreshed or copy the section across.
 
 ---
 
@@ -374,6 +409,12 @@ Player freezing was removed. The file is inert and safe to delete.
 **Should I patch EDB-12?**  
 Only if players join directly, not through BungeeCord/Velocity. The plugin refuses to apply it on proxied setups.
 
+**Will KOS touch my Leaf or Gale config?**  
+Yes, but only through the `leaf` and `gale` sections of the profile, and only for keys your version actually has. Leaf sizes its own thread pools from your CPU cores, so the profiles leave those counts at `0` instead of guessing.
+
+**Why did a profile run say some keys were skipped?**  
+Because your server version does not have them. Forks add and rename options between Minecraft versions, and an absent key is skipped rather than written, so nothing your server cannot read is ever added. The count in the summary is the number of those keys.
+
 ---
 
 ## License
@@ -388,4 +429,4 @@ You can use, modify and sell it. Just keep the copyright notice.
 
 Built by rafmcccc for Paper 1.21 and Paper forks. Designed for Paper, Purpur and Folia.
 
-Server tuning and exploit checks are ports of [Kryptonite](https://github.com/LewMC/Kryptonite) by LewMC (Apache-2.0). World-border GUI is a port of Border by Gab. Thanks to YouHaveTrouble for the optimisation guide behind the default profile.
+Server tuning and exploit checks are ports of [Kryptonite](https://github.com/LewMC/Kryptonite) by LewMC (Apache-2.0). Mob AI reduction is inspired by [LagFixer](https://github.com/lajczik/lagfixer) by lajczik (GPL-3.0), reimplemented clean-room against the Paper Goal API. World-border GUI is a port of Border by Gab. Thanks to YouHaveTrouble for the optimisation guide behind the default profile.

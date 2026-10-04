@@ -1,6 +1,18 @@
 #
-# OptimizeIsEasy first-party profile.
-# LowEnd: aggressive tuning for weak hardware or very busy servers.
+# OptimizeIsEasy first-party KOS profile.
+# LowEnd: aggressive tuning for weak hardware or a very busy server.
+#
+# Profile format from Kryptonite by LewMC (Apache-2.0).
+# Shipped and applied by OptimizeIsEasy ${version}.
+#
+# How to read this file
+#   * Every key is optional. A key that is missing here is never touched.
+#   * A key your server version does not have is skipped, never invented.
+#   * The literal value 'default' means "leave whatever the server file says".
+#   * A whole section is skipped when that server file does not exist, so the same
+#     profile is safe on Paper, Purpur, Pufferfish, Gale and Leaf.
+#   * This profile trades simulation distance, mob density and farm speed for TPS.
+#     If players complain about unloaded chunks, step up to Balanced.
 #
 
 # Profile information
@@ -8,17 +20,21 @@ meta:
   description: Aggressive optimisation for weak hardware. Tight view, spawn and tick ranges.
   author: OptimizeIsEasy
 
-# Server Settings
+# Server Settings - server.properties
 server:
+  # Compression above this size stops costing CPU for almost no bandwidth gain.
   network-compression-threshold: 256
   distance:
+    # 6 chunks is the lowest that still looks acceptable on a small server.
     view: 6
     simulation: 3
+  # Let chunk writes happen on the chunk's own thread instead of stalling the main thread.
   sync-chunk-writes: false
   allow-flight: true
 
-# CraftBukkit Settings
+# CraftBukkit Settings - bukkit.yml
 craftbukkit:
+  # Hard cap per chunk. Lower means fewer mobs, emptier chunks, calmer TPS.
   spawn-limits:
     monsters: 15
     animals: 4
@@ -28,6 +44,8 @@ craftbukkit:
       animals: 2
       ambient: 2
       underground-creature: 2
+  # Ticks between spawn attempts. Vanilla monsters try every tick, this is the
+  # single biggest mob-related saving without touching spawn limits.
   ticks-per:
     monsters: 20
     animals: 400
@@ -37,12 +55,27 @@ craftbukkit:
       animals: 400
       ambient: 400
       underground-creature: 400
+  # Ticks between full world saves. Higher means fewer save spikes, -1 disables autosave.
+  ticks-per.autosave: 12000
+  # Paper caps this at 20 ticks, so it only really matters on Spigot.
   chunk-gc-period-in-ticks: 400
+  # 'Can't keep up!' spam on every overloaded tick hides the useful lines.
+  warn-on-overload: false
+  # Milliseconds an IP must wait between connection attempts.
+  connection-throttle: 6000
+  # Hides your plugin list from ping.
+  query-plugins: false
+  # One of: true, false, default.
+  deprecated-verbose: "false"
 
-# Spigot Settings
+# Spigot Settings - spigot.yml
 spigot:
   view-distance: default
+  simulation-distance: default
+  # Chunks around a player where mobs may spawn. Ties into spawn-limits above.
   mob-spawn-range: 2
+  # How far entities tick at full rate. Everything outside ticks slowly, which
+  # is where most of the entity budget is saved.
   entities:
     activation-range:
       animals: 12
@@ -58,18 +91,56 @@ spigot:
       monsters: 32
       misc: 24
       other: 48
+    # How often sleeping entities outside their activation range are woken back up.
+    wake-up-inactive:
+      animals:
+        every: 2400
+        max-per-tick: 2
+      monsters:
+        every: 1200
+        max-per-tick: 2
+      villagers:
+        every: 1200
+        max-per-tick: 2
+      flying-monsters:
+        every: 600
+        max-per-tick: 2
     tick-inactive-villagers: false
     spawner-mobs-nerfed: true
   hopper:
+    # Ticks between one item move and one hopper scan.
     transfer: 8
     check: 8
+  # Items a hopper moves per slot. Left at the vanilla 1, a higher number costs
+  # CPU in every hopper array on the server.
+  hopper.amount: 1
+  # A hopper pulling from an unloaded chunk is a cheap way to load the world.
+  hopper.can-load-chunks: false
+  # Half the vanilla TNT budget, enough for any sane explosion chain.
+  max-tnt-per-tick: 50
+  # Ground items vanish faster than vanilla, so item entities stop piling up.
+  item-despawn-rate: 3000
+  # Vanilla is 1200 (60s). Arrows are cheap to shoot and expensive to keep.
+  arrow-despawn-rate: 300
+  trident-despawn-rate: 300
+  # Chance of a lightning strike is 1/thunder-chance per chunk, higher is rarer.
+  thunder-chance: 200000
+  # false stops zombies pathing to villagers, which is a real AI saving.
+  zombie-aggressive-towards-villager: false
+  # Larger merge radius means item and xp orbs combine sooner, so fewer entities.
+  merge-radius:
+    item: 1.5
+    exp: 4.0
 
-# Paper Settings
+# Paper Settings - config/paper-world-defaults.yml
 paper:
   chunks:
+    # Seconds a chunk stays loaded after its last player leaves. Longer means
+    # fewer chunk loads on walk-backs, at the cost of RAM.
     delay-unloads: 10
     max-autosave-per-tick: 8
     prevent-moving-into-unloaded: true
+    # Projectiles per chunk that get saved. Caps the classic 'shoot and leave' lag.
     entity-save-limit:
       area-effect-cloud: 8
       arrow: 16
@@ -125,6 +196,8 @@ paper:
     wither-skull: 3000
     trident: 3000
   per-player-mob-spawns: true
+  # Fewer entities checked per collision event. Vanilla is 8, lower is calmer but
+  # stacked mob farms push less.
   max-entity-collisions: 2
   update-pathfinding-on-block-update: false
   fix-climbing-bypass-cramming-rule: true
@@ -132,6 +205,7 @@ paper:
     tick: false
     do-collision-entity-lookups: false
   nerfed-spawner-mobs-can-jump: false
+  # Lower means the check runs less often, in ticks. 1 is vanilla.
   tick-rates:
     villager:
       behaviour:
@@ -148,6 +222,8 @@ paper:
     container-update: 3
   optimised-despawn:
     enabled: true
+    # Dropped items in these blocks are removed after this many ticks, so a
+    # destroyed build does not leave a field of items behind.
     cobblestone: 200
     netherrack: 200
     sand: 200
@@ -181,11 +257,41 @@ paper:
   hoppers:
     ignore-occluding-blocks: true
   optimise-explosions: true
+  # Both stay false: re-scanning known loot tables and trades costs more than it saves.
   find-already-discovered-loot-tables: false
   find-already-discovered-villager-trade: false
   xp-orb-groups-per-area: 40
 
-# Purpur Settings
+# Paper Global Settings - config/paper-global.yml
+paper-global:
+  chunk-system:
+    # -1 lets Paper size the thread pools from your CPU cores. Only set a real
+    # number if you have measured it.
+    io-threads: -1
+    worker-threads: -1
+  chunk-loading:
+    # A weak box cannot afford many chunk jobs per player, so they queue instead
+    # of competing for the same cores. Players notice slightly slower loading
+    # when they teleport, not a lower TPS.
+    player-max-concurrent-chunk-generates: 2
+    player-max-concurrent-chunk-loads: 4
+  player-auto-save:
+    # -1 follows bukkit.yml ticks-per.autosave above, so the two never disagree.
+    rate: -1
+    max-per-tick: 10
+  # Login plugins often leave empty scoreboard teams behind, which slows logins down.
+  scoreboards:
+    save-empty-scoreboard-teams: true
+  spam-limiter:
+    tab-spam-limit: 200
+  # Exploit switches. false everywhere closes them, same fixes as the ExploitDB module.
+  unsupported-settings:
+    allow-headless-pistons: false
+    allow-permanent-block-break-exploits: false
+    allow-piston-duplication: false
+    allow-unsafe-end-portal-teleportation: false
+
+# Purpur Settings - purpur.yml
 purpur:
   entities:
     all:
@@ -193,23 +299,117 @@ purpur:
     zombie:
       aggressive-towards-villager-when-lagging: false
     villager:
+      # Lobotomising fixes villagers that cannot path anywhere, but it stops
+      # trade restocking and can freeze a farm's villagers.
       lobotomized: false
       search-radius:
         acquire-poi: 12
         nearest-bed-sensor: 12
   use-alternative-keepalive: true
   teleport-if-outside-worldborder: true
+  # Purpur treats the server as lagging below this and throttles its own features.
   lagging-tps-threshold: 19.0
+  gameplay-mechanics:
+    elytra:
+      # Kinetic elytra damage is a per-tick velocity calculation for every gliding player.
+      kinetic-damage: false
+  mobs:
+    phantom:
+      spawn:
+        # Vanilla can add up to 10 phantoms per spawn attempt.
+        per-attempt:
+          max: 1
 
-# Pufferfish Settings
+# Pufferfish Settings - pufferfish.yml
 pufferfish:
   max-loads-per-projectile: 8
   entities:
     dynamic-activation-of-brain:
       enabled: true
+      # Every 30 ticks is plenty for a brain that is already only running on
+      # demand, and it is the main cost of DAB on weak hardware.
       max-tick-freq: 30
       activation-distance-modifier: 8
     async-mob-spawning: true
     suffocation-optimisation: true
     inactive-goal-selector-throttle: true
   disable-method-profiler: true
+
+# Gale Settings - config/gale-global.yml (Leaf ships this too, Leaf is built on Gale)
+gale:
+  # Console noise that is harmless on an updated server. Turning it off keeps
+  # latest.log readable and saves the string formatting behind it.
+  log-to-console:
+    chat:
+      empty-message-warning: false
+      expired-message-warning: false
+    ignored-advancements: false
+    invalid-pool-element-error-log-level: none
+    invalid-statistics: false
+    legacy-material-initialization: false
+    set-block-in-far-chunk: false
+    unrecognized-recipes: false
+  misc:
+    # Unparsable legacy structure NBT throws an exception per hit without this.
+    ignore-null-legacy-structure-data: true
+    keepalive:
+      send-multiple: true
+  small-optimizations:
+    # Ticks between the two interval-limited bookkeeping tasks. Vanilla is 1,
+    # nobody can tell the difference.
+    reduced-intervals:
+      increase-time-statistics: 100
+      update-entity-line-of-sight: 20
+
+# Leaf Settings - config/leaf-global.yml
+# Thread counts are left at 0 on purpose: Leaf sizes those pools from your CPU
+# cores, so the same profile is correct on a VPS and on a dedicated box.
+leaf:
+  async:
+    async-entity-tracker:
+      enabled: true
+      # Only needed for real-entity NPC plugins such as Citizens.
+      compat-mode: false
+      max-threads: 0
+      # Idle threads are kept alive longer, which saves pool churn on a busy box.
+      keepalive: 120
+    async-pathfinding:
+      enabled: true
+      max-threads: 0
+      keepalive: 120
+      queue-size: 0
+      reject-policy: CALLER_RUNS
+    async-target-finding:
+      enabled: true
+    async-mob-spawning:
+      enabled: true
+    async-locator:
+      enabled: true
+      threads: 0
+      keepalive: 120
+    async-chunk-send:
+      enabled: true
+  performance:
+    use-virtual-thread-for-async-chat-executor: true
+    use-virtual-thread-for-async-scheduler: true
+    use-virtual-thread-for-user-authenticator: true
+    # Mob goal selectors re-run once a second while the mob is inactive.
+    inactive-goal-selector-throttle: true
+    skip-ai-for-non-aware-mob: true
+    optimized-powered-rails: true
+    # Retry a full hopper every 16 ticks instead of every tick.
+    throttle-hopper-when-full:
+      enabled: true
+      skip-ticks: 16
+    optimize-minecart:
+      enabled: true
+      skip-tick-count: 60
+    dab:
+      enabled: true
+      max-tick-freq: 30
+      start-distance: 6
+      activation-dist-mod: 8
+  misc:
+    secure-seed:
+      # Stays off so slime chunks, villages and existing builds are unchanged.
+      enabled: false

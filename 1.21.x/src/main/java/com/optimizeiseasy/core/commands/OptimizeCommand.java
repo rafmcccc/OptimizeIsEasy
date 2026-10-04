@@ -375,7 +375,8 @@ public class OptimizeCommand implements TabExecutor {
             profiles.add("gui");
             ServerTunerModule tuner = plugin.getModuleManager().get(ServerTunerModule.class);
             if (tuner != null) profiles.addAll(tuner.listProfiles());
-            else profiles.addAll(Arrays.asList("YouHaveTrouble.kos", "FarmFriendly.kos"));
+            else profiles.addAll(Arrays.asList("YouHaveTrouble.kos", "FarmFriendly.kos", "Balanced.kos", "LowEnd.kos",
+                    "HighEnd.kos", "VanillaPlus.kos", "LobbyGames.kos", "Anarchy.kos"));
             return filter(profiles, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("kos")) {

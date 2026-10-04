@@ -24,7 +24,7 @@ public class KryptonGui implements Listener {
     public static final String TITLE = "OptimizeIsEasy - Krypton (KOS)";
 
     private static final int SLOT_PREGEN = 4;
-    private static final int[] PROFILE_SLOTS = {10, 11, 12, 13, 14, 15, 16};
+    private static final int[] PROFILE_SLOTS = {9, 10, 11, 12, 13, 14, 15, 16};
     private static final int SLOT_BACK = 18;
     private static final int SLOT_APPLY = 22;
     private static final int SLOT_INFO = 26;

@@ -8,7 +8,7 @@ import java.util.List;
 
 public class SoftwareDetector {
     public enum ConfigType {
-        MINECRAFT, BUKKIT, SPIGOT, PAPER_WORLD, PAPER_GLOBAL, PURPUR, PUFFERFISH, LEAF
+        MINECRAFT, BUKKIT, SPIGOT, PAPER_WORLD, PAPER_GLOBAL, PURPUR, PUFFERFISH, GALE, LEAF
     }
 
     private final OptimizeIsEasyPlugin plugin;
@@ -28,6 +28,7 @@ public class SoftwareDetector {
         if (new File("config/paper-global.yml").exists()) supported.add(ConfigType.PAPER_GLOBAL);
         if (new File("purpur.yml").exists()) supported.add(ConfigType.PURPUR);
         if (new File("pufferfish.yml").exists()) supported.add(ConfigType.PUFFERFISH);
+        if (new File("config/gale-global.yml").exists()) supported.add(ConfigType.GALE);
         if (new File("config/leaf-global.yml").exists()) supported.add(ConfigType.LEAF);
         if (plugin.isDebug()) plugin.getLogger().fine("Supported configs: " + supported);
         else plugin.getLogger().info("Supported configs: " + supported);
@@ -42,6 +43,7 @@ public class SoftwareDetector {
     public boolean supportsPaperGlobal() { return supported.contains(ConfigType.PAPER_GLOBAL); }
     public boolean supportsPurpur() { return supported.contains(ConfigType.PURPUR); }
     public boolean supportsPufferfish() { return supported.contains(ConfigType.PUFFERFISH); }
+    public boolean supportsGale() { return supported.contains(ConfigType.GALE); }
     public boolean supportsLeaf() { return supported.contains(ConfigType.LEAF); }
 
     public String describe() {
