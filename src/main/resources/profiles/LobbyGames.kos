@@ -1,6 +1,6 @@
 #
 # OptimizeIsEasy first-party KOS profile.
-# LowEnd: aggressive tuning for weak hardware or a very busy server.
+# LobbyGames: for lobbies, creative plots, minigames and event servers.
 #
 # Profile format from Kryptonite by LewMC (Apache-2.0).
 # Shipped and applied by OptimizeIsEasy ${version}.
@@ -11,13 +11,13 @@
 #   * The literal value 'default' means "leave whatever the server file says".
 #   * A whole section is skipped when that server file does not exist, so the same
 #     profile is safe on Paper, Purpur, Pufferfish, Gale and Leaf.
-#   * This profile trades simulation distance, mob density and farm speed for TPS.
-#     If players complain about unloaded chunks, step up to Balanced.
+#   * This profile assumes small, busy maps: mobs are decoration, drops are trash,
+#     and anything that piles up gets cleared fast. Do not use it on an SMP.
 #
 
 # Profile information
 meta:
-  description: Aggressive optimisation for weak hardware. Tight view, spawn and tick ranges.
+  description: Tight tuning for lobbies, creative and minigames. Fast cleanup, tiny mobs.
   author: OptimizeIsEasy
 
 # Server Settings - server.properties
@@ -25,29 +25,29 @@ server:
   # Compression above this size stops costing CPU for almost no bandwidth gain.
   network-compression-threshold: 256
   distance:
-    # 6 chunks is the lowest that still looks acceptable on a small server.
+    # Small maps do not need far view. 6 keeps lobbies crisp and cheap.
     view: 6
     simulation: 3
   # Let chunk writes happen on the chunk's own thread instead of stalling the main thread.
   sync-chunk-writes: false
+  # Creative plots and event lobbies need flight on.
   allow-flight: true
 
 # CraftBukkit Settings - bukkit.yml
 craftbukkit:
-  # Hard cap per chunk. Lower means fewer mobs, emptier chunks, calmer TPS.
+  # Hard cap per chunk. Mobs are decoration on a lobby, keep them sparse.
   spawn-limits:
-    monsters: 15
-    animals: 4
-    axolotls: 2
+    monsters: 10
+    animals: 2
+    axolotls: 1
     ambient: 1
     water:
-      animals: 2
-      ambient: 2
-      underground-creature: 2
-  # Ticks between spawn attempts. Vanilla monsters try every tick, this is the
-  # single biggest mob-related saving without touching spawn limits.
+      animals: 1
+      ambient: 1
+      underground-creature: 1
+  # Ticks between spawn attempts. Slow spawns keep the map clean between events.
   ticks-per:
-    monsters: 20
+    monsters: 30
     animals: 400
     axolotls: 400
     ambient: 400
@@ -72,25 +72,24 @@ craftbukkit:
 spigot:
   view-distance: default
   simulation-distance: default
-  # Chunks around a player where mobs may spawn. Ties into spawn-limits above.
+  # Chunks around a player where mobs may spawn. 2 is plenty on a small map.
   mob-spawn-range: 2
-  # How far entities tick at full rate. Everything outside ticks slowly, which
-  # is where most of the entity budget is saved.
+  # How far entities tick at full rate. Tight on purpose, players are the show.
   entities:
     activation-range:
-      animals: 12
-      monsters: 16
-      raiders: 32
-      misc: 6
-      water: 6
-      villagers: 12
-      flying: 24
+      animals: 10
+      monsters: 12
+      raiders: 24
+      misc: 4
+      water: 4
+      villagers: 8
+      flying: 16
     tracking-range:
       players: 32
       animals: 32
       monsters: 32
-      misc: 24
-      other: 48
+      misc: 16
+      other: 32
     # How often sleeping entities outside their activation range are woken back up.
     wake-up-inactive:
       animals:
@@ -111,14 +110,13 @@ spigot:
     # Ticks between one item move and one hopper scan.
     transfer: 8
     check: 8
-  # Items a hopper moves per slot. Left at the vanilla 1, a higher number costs
-  # CPU in every hopper array on the server.
+  # Items a hopper moves per slot. Left at the vanilla 1, lobbies sort small loads.
   hopper.amount: 1
   # A hopper pulling from an unloaded chunk is a cheap way to load the world.
   hopper.can-load-chunks: false
-  # Half the vanilla TNT budget, enough for any sane explosion chain.
+  # Half the vanilla TNT budget, enough for any sane minigame.
   max-tnt-per-tick: 50
-  # Ground items vanish faster than vanilla, so item entities stop piling up.
+  # Drops vanish fast so arenas and crates never leave item fields behind.
   item-despawn-rate: 3000
   # Vanilla is 1200 (60s). Arrows are cheap to shoot and expensive to keep.
   arrow-despawn-rate: 300
@@ -127,7 +125,7 @@ spigot:
   thunder-chance: 200000
   # false stops zombies pathing to villagers, which is a real AI saving.
   zombie-aggressive-towards-villager: false
-  # Larger merge radius means item and xp orbs combine sooner, so fewer entities.
+  # Smaller item radius keeps drops visible for pickup, xp still merges fast.
   merge-radius:
     item: 1.5
     exp: 4.0
@@ -197,7 +195,7 @@ paper:
     trident: 3000
   per-player-mob-spawns: true
   # Fewer entities checked per collision event. Vanilla is 8, lower is calmer but
-  # stacked mob farms push less.
+  # stacked decoration pushes less.
   max-entity-collisions: 2
   update-pathfinding-on-block-update: false
   fix-climbing-bypass-cramming-rule: true
@@ -222,8 +220,8 @@ paper:
     container-update: 3
   optimised-despawn:
     enabled: true
-    # Dropped items in these blocks are removed after this many ticks, so a
-    # destroyed build does not leave a field of items behind.
+    # Dropped items in these blocks are removed after this many ticks, so event
+    # builds and broken arenas clear themselves quickly.
     cobblestone: 200
     netherrack: 200
     sand: 200
@@ -261,6 +259,30 @@ paper:
   find-already-discovered-loot-tables: false
   find-already-discovered-villager-trade: false
   xp-orb-groups-per-area: 40
+  environment:
+    # Lobbies do not need weather. Off keeps the map clean and saves the tick.
+    disable-thunder: true
+    disable-ice-and-snow: true
+    fire-tick-delay: 60
+    # Small maps never need a wide portal search.
+    portal-search-radius: 64
+    # Lower caps blunt block-update lag machines in creative plots.
+    max-block-ticks: 32768
+    max-fluid-ticks: 32768
+  collisions:
+    # true means only players collide with each other, entities pass through.
+    only-players-collide: true
+  maps:
+    # Map walls are a classic client-lag vector. 32 is plenty for lobby art.
+    item-frame-cursor-limit: 32
+  entities:
+    scan-for-legacy-ender-dragon: false
+  anticheat:
+    # No ores to steal on a lobby, xray defence stays off for the saving.
+    enabled: false
+    engine-mode: 1
+  misc:
+    light-queue-size: 20
 
 # Paper Global Settings - config/paper-global.yml
 paper-global:
@@ -270,9 +292,8 @@ paper-global:
     io-threads: -1
     worker-threads: -1
   chunk-loading:
-    # A weak box cannot afford many chunk jobs per player, so they queue instead
-    # of competing for the same cores. Players notice slightly slower loading
-    # when they teleport, not a lower TPS.
+    # A small busy map loads few chunks per player, so teleports queue calmly
+    # instead of competing for the same cores.
     player-max-concurrent-chunk-generates: 2
     player-max-concurrent-chunk-loads: 4
   player-auto-save:
@@ -284,6 +305,28 @@ paper-global:
     save-empty-scoreboard-teams: true
   spam-limiter:
     tab-spam-limit: 200
+    recipe-spam-increment: 1
+    tab-spam-increment: 1
+  collisions:
+    # Lobbies do not need player pushing. Off saves the collision pass.
+    enable-player-collisions: false
+  timings:
+    enabled: false
+  item-validation:
+    # 1024 matches the ExploitDB book cap, creative inventories get no exceptions.
+    book-page-max: 1024
+    display-name: 8192
+    lore-line: 8192
+  packet-limiter:
+    max-packet-rate: 500.0
+    interval: 7.0
+  watchdog:
+    early-warning-delay: 10000
+    early-warning-every: 5000
+  misc:
+    fix-entity-position-desync: true
+  console:
+    enable-brigadier-highlighting: false
   # Exploit switches. false everywhere closes them, same fixes as the ExploitDB module.
   unsupported-settings:
     allow-headless-pistons: false
@@ -300,11 +343,14 @@ purpur:
       aggressive-towards-villager-when-lagging: false
     villager:
       # Lobotomising fixes villagers that cannot path anywhere, but it stops
-      # trade restocking and can freeze a farm's villagers.
+      # trade restocking and can freeze event villagers.
       lobotomized: false
       search-radius:
         acquire-poi: 12
         nearest-bed-sensor: 12
+    shared-random: true
+  # Off avoids catch-up cascades after event-driven lag spikes.
+  tps-catchup: false
   use-alternative-keepalive: true
   teleport-if-outside-worldborder: true
   # Purpur treats the server as lagging below this and throttles its own features.
@@ -316,18 +362,19 @@ purpur:
   mobs:
     phantom:
       spawn:
-        # Vanilla can add up to 10 phantoms per spawn attempt.
+        # Minigame nights stay quiet with a single phantom per attempt.
         per-attempt:
           max: 1
 
 # Pufferfish Settings - pufferfish.yml
 pufferfish:
   max-loads-per-projectile: 8
+  max-loads-per-tick: 8
   entities:
     dynamic-activation-of-brain:
       enabled: true
       # Every 30 ticks is plenty for a brain that is already only running on
-      # demand, and it is the main cost of DAB on weak hardware.
+      # demand, and it is the main cost of DAB on busy maps.
       max-tick-freq: 30
       activation-distance-modifier: 8
     async-mob-spawning: true
@@ -360,6 +407,8 @@ gale:
     reduced-intervals:
       increase-time-statistics: 100
       update-entity-line-of-sight: 20
+    optimized-tracker:
+      enabled: true
 
 # Leaf Settings - config/leaf-global.yml
 # Thread counts are left at 0 on purpose: Leaf sizes those pools from your CPU
@@ -389,7 +438,11 @@ leaf:
       keepalive: 120
     async-chunk-send:
       enabled: true
+      threads: 0
+      keepalive: 120
   performance:
+    # Leaf 26.x collapsed the three use-virtual-thread-for-* keys into this one.
+    use-virtual-thread: true
     use-virtual-thread-for-async-chat-executor: true
     use-virtual-thread-for-async-scheduler: true
     use-virtual-thread-for-user-authenticator: true

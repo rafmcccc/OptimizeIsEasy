@@ -6,7 +6,7 @@
 
 *Hibernate when empty. Clean when messy. Smart when stressed. Tuned at the config level.*
 
-[![Paper 1.21.x](https://img.shields.io/badge/Paper-1.21.x-blue?style=flat-square)](https://papermc.io)
+[![Paper 1.21.1+](https://img.shields.io/badge/Paper-1.21.1%20through%2026.x-blue?style=flat-square)](https://papermc.io)
 [![Purpur](https://img.shields.io/badge/Purpur-supported-blue?style=flat-square)](#)
 [![Folia](https://img.shields.io/badge/Folia-partial-yellow?style=flat-square)](#faq)
 [![Java 21](https://img.shields.io/badge/Java-21-orange?style=flat-square)](https://adoptium.net)
@@ -371,20 +371,25 @@ Read this before installing on a live server. OptimizeIsEasy is not just an obse
 
 ## Compatibility
 
-| Software | Status | Tested version |
+| Software | Status | Notes |
 |---|---|---|
-| Paper 1.21.x | Supported | _TBD_ |
-| Purpur | Supported | _TBD_ |
-| Folia | Partial (scheduling works; TPS-based LagShield throttling stays off) | _TBD_ |
+| Paper | Supported | 1.21.1 and everything newer, including the 26.x line |
+| Purpur | Supported | `purpur.yml` tuned on every 1.21.x and 26.x branch |
+| Leaf | Supported | `leaf-global.yml` and `gale-global.yml` tuned, keys absent in your version are skipped |
+| Gale | Supported | `gale-global.yml` tuned |
+| Pufferfish | Supported | `pufferfish.yml` tuned where the fork still ships it |
+| Folia | Partial | Scheduling works; TPS-based LagShield throttling stays off (see FAQ) |
 
-Fill in the tested version column after verifying on a live server.
+**One jar covers the whole range.** It is compiled against `paper-api:1.21.1`, the oldest release we claim to support, so javac rejects any API newer than that and nothing can break on an older server. A second CI job compiles the identical sources against the newest API (`26.2`) on Java 25, so anything Paper removes upstream fails CI instead of someone's server. `api-version` stays `1.21` in `plugin.yml`, which every version from 1.21.1 to 26.x accepts.
+
+The jar is Java 21 bytecode, so it runs on Java 21 through 25. Server-side config keys move around between Minecraft versions; ServerTuner only ever writes keys your server file already has, and reports the ones it had to skip.
 
 ---
 
 ## Installation
 
 1. Drop the jar into `plugins/`
-2. Restart your Paper 1.21.x server. Works on Paper, Purpur plus any Paper fork; Folia support is partial (see FAQ)
+2. Restart your Paper 1.21.1+ server. Works on Paper, Purpur, Leaf, Gale and any Paper fork; Folia support is partial (see FAQ)
 3. Run `/optimize` and `/exploitfix` in-game to open the menus, or `/optimize status` and `/exploitfix check` for the text output
 
 That is it. No extra setup.
@@ -395,13 +400,32 @@ That is it. No extra setup.
 
 ```
 git clone https://github.com/rafmcccc/OptimizeIsEasy.git
-cd OptimizeIsEasy/1.21.x
+cd OptimizeIsEasy
 ./gradlew clean build
 ```
 
-Jar goes to `1.21.x/build/libs/OptimizeIsEasy-2.1.2.jar`.
+Jar goes to `build/libs/OptimizeIsEasy-3.0.0.jar`.
 
-Requires Java 21, Paper API 1.21.11. Runs on Paper, Purpur, Leaf, Gale and Paper forks; Folia is partial (see FAQ). No Paperweight, no NMS toolchain.
+Requires Java 21 to build. No Paperweight, no NMS toolchain, no shaded runtime dependency.
+
+Both API ends are one flag apart:
+
+```
+./gradlew clean test                                                        # oldest API, what ships
+./gradlew compileJava -PpaperApi=26.2.build.132-stable -Pjdk=25             # newest API, needs JDK 25
+```
+
+---
+
+## Upgrading to 3.0.0
+
+Drop the new jar in and restart. Config files are merged in place, so nothing to delete. One thing breaks, one thing widens:
+
+**Breaking: the build moved to the repository root.** `1.21.x/` is gone. If you had a local build, clone or `git pull` and run `./gradlew clean build` from the top of the repo; the jar lands in `build/libs/`. Nothing about your server's `plugins/OptimizeIsEasy/` folder changes.
+
+**One jar now covers Paper 1.21.1 through 26.x.** It is compiled against the oldest supported API and CI compiles the same sources against the newest, so no new API call can leak in and break an older server. `api-version` stays `1.21`, which every version in that range accepts.
+
+One tuner key was added for Leaf 26.x, which renamed its virtual-thread options: `leaf.performance.use-virtual-thread`. Older Leaf versions ignore it, because the tuner only writes keys your server file already has.
 
 ---
 

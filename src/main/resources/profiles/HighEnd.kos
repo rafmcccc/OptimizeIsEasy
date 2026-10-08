@@ -460,6 +460,8 @@ leaf:
       threads: 0
       keepalive: 60
   performance:
+    # Leaf 26.x collapsed the three use-virtual-thread-for-* keys into this one.
+    use-virtual-thread: true
     use-virtual-thread-for-async-chat-executor: true
     use-virtual-thread-for-async-scheduler: true
     use-virtual-thread-for-user-authenticator: true

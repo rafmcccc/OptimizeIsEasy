@@ -606,6 +606,7 @@ public class ServerTunerModule extends AbstractModule {
         k.add(strictKey("leaf.async.async-chunk-send.enabled", leaf, "async.async-chunk-send.enabled", VType.BOOL));
         k.add(strictKey("leaf.async.async-chunk-send.threads", leaf, "async.async-chunk-send.threads", VType.INT));
         k.add(strictKey("leaf.async.async-chunk-send.keepalive", leaf, "async.async-chunk-send.keepalive", VType.INT));
+        k.add(strictKey("leaf.performance.use-virtual-thread", leaf, "performance.use-virtual-thread", VType.BOOL));
         k.add(strictKey("leaf.performance.use-virtual-thread-for-async-chat-executor", leaf, "performance.use-virtual-thread-for-async-chat-executor", VType.BOOL));
         k.add(strictKey("leaf.performance.use-virtual-thread-for-async-scheduler", leaf, "performance.use-virtual-thread-for-async-scheduler", VType.BOOL));
         k.add(strictKey("leaf.performance.use-virtual-thread-for-user-authenticator", leaf, "performance.use-virtual-thread-for-user-authenticator", VType.BOOL));

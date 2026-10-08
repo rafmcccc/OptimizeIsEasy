@@ -1,25 +1,22 @@
 #
-# OptimizeIsEasy first-party KOS profile.
-# VanillaPlus: near-vanilla SMP. Only the safe, behaviour-preserving wins are taken.
+# A farm-friendly optimisation profile.
+# Everything vanilla that a farm depends on is left alone, only the cheap wins are taken.
 #
-# Profile format from Kryptonite by LewMC (Apache-2.0).
+# Based on the Kryptonite profile format by LewMC (Apache-2.0).
 # Shipped and applied by OptimizeIsEasy ${version}.
 #
 # How to read this file
 #   * Every key is optional. A key that is missing here is never touched.
 #   * A key your server version does not have is skipped, never invented.
 #   * The literal value 'default' means "leave whatever the server file says".
-#     This profile uses it a lot on purpose: vanilla behaviour wins over tuning.
 #   * A whole section is skipped when that server file does not exist, so the same
 #     profile is safe on Paper, Purpur, Pufferfish, Gale and Leaf.
-#   * Values are tuned for 1.21.x survival communities that want vanilla mechanics
-#     with none of the silly overhead. Need more TPS? Step up to FarmFriendly.
 #
 
 # Profile information
 meta:
-  description: Near-vanilla SMP tuning. Safe wins only, mechanics untouched.
-  author: OptimizeIsEasy
+  description: A farm-friendly optimisation profile, does not change any animal settings.
+  author: LewMC
 
 # Server Settings - server.properties
 server:
@@ -34,7 +31,7 @@ server:
 
 # CraftBukkit Settings - bukkit.yml
 craftbukkit:
-  # Vanilla-ish caps. Nothing here starves a survival world.
+  # Vanilla-ish caps. Animals are untouched, which is the whole point of this profile.
   spawn-limits:
     monsters: 70
     animals: 10
@@ -124,21 +121,21 @@ spigot:
   thunder-chance: 100000
   # true keeps vanilla zombie behaviour towards your villagers.
   zombie-aggressive-towards-villager: true
-  # Vanilla merge behaviour, orbs still combine so entity counts stay sane.
+  # Larger merge radius means item and xp orbs combine sooner, so fewer entities.
   merge-radius:
     item: 4.0
     exp: 4.0
-  # Random growth speed, 100 is vanilla and this profile keeps it there.
+  # Random growth speed, 100 is vanilla. Higher is a faster farm, not a cheaper tick.
   growth:
-    cane: 100
-    wheat: 100
-    carrot: 100
-    potato: 100
-    beetroot: 100
-    melon: 100
-    pumpkin: 100
-    bamboo: 100
-    kelp: 100
+    cane: 300
+    wheat: 300
+    carrot: 300
+    potato: 300
+    beetroot: 300
+    melon: 200
+    pumpkin: 200
+    bamboo: 200
+    kelp: 200
 
 # Paper Settings - config/paper-world-defaults.yml
 paper:
@@ -146,10 +143,10 @@ paper:
     # Seconds a chunk stays loaded after its last player leaves. Longer means
     # fewer chunk loads on walk-backs, at the cost of RAM.
     delay-unloads: 10
-    max-autosave-per-tick: 24
+    max-autosave-per-tick: 8
     prevent-moving-into-unloaded: true
     # Projectiles per chunk that get saved. -1 means unlimited, kept for egg and
-    # llama spit so vanilla throwing behaviour is never throttled by this profile.
+    # llama spit so farm builds are never throttled by this profile.
     entity-save-limit:
       area-effect-cloud: 8
       arrow: 16
@@ -168,8 +165,8 @@ paper:
       spectral-arrow: 16
       trident: 16
       wither-skull: 4
-  # 'default' means the server keeps its own despawn ranges, so vanilla
-  # mob behaviour is untouched.
+  # 'default' means the server keeps its own despawn ranges, so animal farms
+  # and vanilla mob behaviour are untouched.
   despawn-ranges:
     ambient:
       hard: default
@@ -215,8 +212,8 @@ paper:
     tick: false
     do-collision-entity-lookups: false
   nerfed-spawner-mobs-can-jump: false
-  # Spawner ticks at vanilla speed. Grass and container rates are left at the
-  # server default so nothing about the world tick changes.
+  # Lower means the check runs less often, in ticks. -1 and 40 are the values
+  # Paper itself ships, so villager behaviour stays the same.
   tick-rates:
     villager:
       behaviour:
@@ -229,11 +226,12 @@ paper:
         player: 40
         nearest-living-entity: 40
     mob-spawner: 1
-    grass-spread: default
-    container-update: default
+    grass-spread: 4
+    container-update: 2
   optimised-despawn:
-    # Off on purpose: with vanilla rates there is nothing worth fast-clearing.
-    enabled: false
+    enabled: true
+    # Dropped items in these blocks are removed after this many ticks, so a
+    # destroyed build does not leave a field of items behind.
     cobblestone: 300
     netherrack: 300
     sand: 300
@@ -263,37 +261,15 @@ paper:
     arrow:
       non-player: 20
       creative: 20
-  # Same-tick behaviour as vanilla redstone, just without the worst overhead.
   redstone-implementation: ALTERNATE_CURRENT
   hoppers:
     ignore-occluding-blocks: true
-  # false keeps vanilla explosion behaviour exactly as players expect it.
-  optimise-explosions: false
+  optimise-explosions: true
   # true keeps the lookup caches warm, which is the cheaper option on a server
   # where villagers trade often.
   find-already-discovered-loot-tables: true
   find-already-discovered-villager-trade: true
   xp-orb-groups-per-area: 40
-  environment:
-    # Vanilla weather, fire and portals. Listed so a hand-edited file resets cleanly.
-    disable-thunder: false
-    disable-ice-and-snow: false
-    fire-tick-delay: 30
-    portal-search-radius: 128
-    max-block-ticks: 65536
-    max-fluid-ticks: 65536
-  collisions:
-    only-players-collide: false
-  maps:
-    item-frame-cursor-limit: 128
-  entities:
-    # true keeps the vanilla boot-time dragon scan.
-    scan-for-legacy-ender-dragon: true
-  anticheat:
-    enabled: false
-    engine-mode: 1
-  misc:
-    light-queue-size: 20
 
 # Paper Global Settings - config/paper-global.yml
 paper-global:
@@ -308,28 +284,6 @@ paper-global:
   # Login plugins often leave empty scoreboard teams behind, which slows logins down.
   scoreboards:
     save-empty-scoreboard-teams: true
-  collisions:
-    enable-player-collisions: true
-  timings:
-    enabled: false
-  spam-limiter:
-    recipe-spam-increment: 1
-    tab-spam-increment: 1
-  item-validation:
-    # Paper defaults, listed so a hand-edited file can be reset to known-good.
-    book-page-max: 2560
-    display-name: 8192
-    lore-line: 8192
-  packet-limiter:
-    max-packet-rate: 500.0
-    interval: 7.0
-  watchdog:
-    early-warning-delay: 10000
-    early-warning-every: 5000
-  misc:
-    fix-entity-position-desync: true
-  console:
-    enable-brigadier-highlighting: true
   # Exploit switches. false everywhere closes them, same fixes as the ExploitDB module.
   unsupported-settings:
     allow-headless-pistons: false
@@ -350,16 +304,14 @@ purpur:
       search-radius:
         acquire-poi: 20
         nearest-bed-sensor: 20
-    shared-random: true
-  tps-catchup: true
   use-alternative-keepalive: true
   teleport-if-outside-worldborder: true
   # Purpur treats the server as lagging below this and throttles its own features.
   lagging-tps-threshold: 19.0
   gameplay-mechanics:
     elytra:
-      # true keeps vanilla kinetic damage while gliding.
-      kinetic-damage: true
+      # Kinetic elytra damage is a per-tick velocity calculation for every gliding player.
+      kinetic-damage: false
   mobs:
     phantom:
       spawn:
@@ -370,8 +322,6 @@ purpur:
 # Pufferfish Settings - pufferfish.yml
 pufferfish:
   max-loads-per-projectile: 8
-  # Left at the server default so projectile chunk loading stays vanilla.
-  max-loads-per-tick: default
   entities:
     dynamic-activation-of-brain:
       # Left off: DAB slows mob brains down, which changes how fast farms tick.
@@ -407,8 +357,6 @@ gale:
     reduced-intervals:
       increase-time-statistics: 20
       update-entity-line-of-sight: 4
-    optimized-tracker:
-      enabled: true
 
 # Leaf Settings - config/leaf-global.yml
 # Thread counts are left at 0 on purpose: Leaf sizes those pools from your CPU
@@ -437,9 +385,9 @@ leaf:
       keepalive: 60
     async-chunk-send:
       enabled: true
-      threads: 0
-      keepalive: 60
   performance:
+    # Leaf 26.x collapsed the three use-virtual-thread-for-* keys into this one.
+    use-virtual-thread: true
     use-virtual-thread-for-async-chat-executor: true
     use-virtual-thread-for-async-scheduler: true
     use-virtual-thread-for-user-authenticator: true

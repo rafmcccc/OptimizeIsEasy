@@ -113,6 +113,9 @@ class ShippedConfigTest {
             // profile portable instead of guessing thread counts.
             assertThat(cfg.getInt("leaf.async.async-pathfinding.max-threads")).as(name + " pathfinding threads").isZero();
             assertThat(cfg.getInt("leaf.async.async-entity-tracker.max-threads")).as(name + " tracker threads").isZero();
+            // Leaf 26.x renamed the three virtual-thread keys into this single one.
+            assertThat(cfg.getBoolean("leaf.performance.use-virtual-thread", false))
+                    .as(name + " leaf virtual threads").isTrue();
         }
     }
 
