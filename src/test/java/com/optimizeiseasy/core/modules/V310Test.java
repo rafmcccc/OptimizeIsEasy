@@ -75,4 +75,53 @@ class V310Test {
         assertThat((int) slotOf.invoke(null, org.mockito.Mockito.mock(org.bukkit.entity.Minecart.class))).isEqualTo(2);
         assertThat((int) slotOf.invoke(null, org.mockito.Mockito.mock(org.bukkit.entity.Arrow.class))).isEqualTo(3);
     }
+
+    @Test
+    void bumpDoesNotSeedMissingEntry(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws Exception {
+        var plugin = org.mockito.Mockito.mock(com.optimizeiseasy.core.OptimizeIsEasyPlugin.class);
+        java.io.File data = tmp.toFile();
+        org.mockito.Mockito.when(plugin.getDataFolder()).thenReturn(data);
+        org.mockito.Mockito.when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getLogger("V310Test"));
+        org.mockito.Mockito.when(plugin.getConfig()).thenReturn(new org.bukkit.configuration.file.YamlConfiguration());
+        var mod = new com.optimizeiseasy.core.modules.EntityLimiterModule(plugin);
+        var creatures = mod.getClass().getDeclaredField("creatures");
+        creatures.setAccessible(true);
+        creatures.setInt(mod, 20);
+        java.util.UUID uid = java.util.UUID.randomUUID();
+        var world = org.mockito.Mockito.mock(org.bukkit.World.class);
+        org.mockito.Mockito.when(world.getUID()).thenReturn(uid);
+        org.mockito.Mockito.when(world.getName()).thenReturn("world");
+        var loc = org.mockito.Mockito.mock(org.bukkit.Location.class);
+        org.mockito.Mockito.when(loc.getWorld()).thenReturn(world);
+        org.mockito.Mockito.when(loc.getBlockX()).thenReturn(0);
+        org.mockito.Mockito.when(loc.getBlockZ()).thenReturn(0);
+        var ent = org.mockito.Mockito.mock(org.bukkit.entity.Zombie.class);
+        org.mockito.Mockito.when(ent.getType()).thenReturn(org.bukkit.entity.EntityType.ZOMBIE);
+        org.mockito.Mockito.when(ent.getLocation()).thenReturn(loc);
+        mod.bump(ent, 1);
+        var countsField = mod.getClass().getDeclaredField("counts");
+        countsField.setAccessible(true);
+        java.util.Map<?, ?> counts = (java.util.Map<?, ?>) countsField.get(mod);
+        assertThat(counts).as("bump must not seed a fresh chunk entry").isEmpty();
+    }
+
+    @Test
+    void limitForSlotMapping(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws Exception {
+        var plugin = org.mockito.Mockito.mock(com.optimizeiseasy.core.OptimizeIsEasyPlugin.class);
+        org.mockito.Mockito.when(plugin.getDataFolder()).thenReturn(tmp.toFile());
+        org.mockito.Mockito.when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getLogger("V310Test"));
+        org.mockito.Mockito.when(plugin.getConfig()).thenReturn(new org.bukkit.configuration.file.YamlConfiguration());
+        var mod = new com.optimizeiseasy.core.modules.EntityLimiterModule(plugin);
+        for (String field : new String[]{"creatures", "items", "vehicles", "projectiles"}) {
+            var f = mod.getClass().getDeclaredField(field);
+            f.setAccessible(true);
+            f.setInt(mod, 7);
+        }
+        var m = mod.getClass().getDeclaredMethod("limitForSlot", int.class);
+        m.setAccessible(true);
+        for (int slot = 0; slot < 4; slot++) {
+            assertThat((int) m.invoke(mod, slot)).isEqualTo(7);
+        }
+        assertThat((int) m.invoke(mod, 99)).isEqualTo(0);
+    }
 }
