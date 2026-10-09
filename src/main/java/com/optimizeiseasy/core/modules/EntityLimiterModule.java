@@ -14,7 +14,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
@@ -35,6 +34,7 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
     private final EnumSet<EntityType> whitelist = EnumSet.noneOf(EntityType.class);
     private final Map<ChunkKey, int[]> counts = new ConcurrentHashMap<>();
     private BukkitTask overflowTask, recountTask;
+    private Object paperCountsListener;
     private int creatures, items, vehicles, projectiles;
     private boolean overflowEnabled;
     private int overflowInterval;
@@ -48,6 +48,14 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
 
     record ChunkKey(UUID world, int x, int z) {
         static ChunkKey of(Location l) { return new ChunkKey(l.getWorld().getUID(), l.getBlockX() >> 4, l.getBlockZ() >> 4); }
+    }
+
+    static int slotOf(Entity ent) {
+        if (ent instanceof Mob) return 0;
+        if (ent instanceof Item) return 1;
+        if (ent instanceof Vehicle) return 2;
+        if (ent instanceof Projectile) return 3;
+        return -1;
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -81,24 +89,20 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onDeath(EntityDeathEvent e) {
-        try {
-            Location l = e.getEntity().getLocation();
-            if (l == null || l.getWorld() == null) return;
-            ChunkKey ck = ChunkKey.of(l);
-            int[] c = counts.get(ck);
-            if (c == null) return;
-            Entity ent = e.getEntity();
-            if (ent instanceof Mob) c[0] = Math.max(0, c[0] - 1);
-            else if (ent instanceof Item) c[1] = Math.max(0, c[1] - 1);
-            else if (ent instanceof Vehicle) c[2] = Math.max(0, c[2] - 1);
-            else if (ent instanceof Projectile) c[3] = Math.max(0, c[3] - 1);
-        } catch (Throwable ignored) {}
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent e) {
         counts.remove(new ChunkKey(e.getWorld().getUID(), e.getChunk().getX(), e.getChunk().getZ()));
+    }
+
+    void bump(Entity ent, int delta) {
+        try {
+            if (ent == null || whitelist.contains(ent.getType())) return;
+            int slot = slotOf(ent);
+            if (slot < 0) return;
+            Location l = ent.getLocation();
+            if (l == null || l.getWorld() == null) return;
+            int[] c = counts.computeIfAbsent(ChunkKey.of(l), k -> new int[4]);
+            c[slot] = Math.max(0, c[slot] + delta);
+        } catch (Throwable ignored) {}
     }
 
     private boolean handleEvent(Location loc, CreatureSpawnEvent.SpawnReason reason, EntityType type, int limit, Predicate<Entity> filter, int slot) {
@@ -107,9 +111,8 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
         World w = loc.getWorld();
         int cx = loc.getBlockX() >> 4, cz = loc.getBlockZ() >> 4;
         if (!w.isChunkLoaded(cx, cz)) return false;
-        ChunkKey ck = new ChunkKey(w.getUID(), cx, cz);
-        int[] cached = counts.get(ck);
-        if (cached != null && cached[slot] >= limit) return true;
+        int[] cached = counts.get(new ChunkKey(w.getUID(), cx, cz));
+        if (cached != null) return cached[slot] >= limit;
         int count = 0;
         Entity[] entities;
         try {
@@ -119,12 +122,11 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
         }
         for (Entity entity : entities) {
             if (filter.test(entity) && !whitelist.contains(entity.getType()) && ++count >= limit) {
-                counts.computeIfAbsent(ck, k -> new int[4])[slot] = count;
+                recountChunk(w, cx, cz);
                 return true;
             }
         }
-        counts.computeIfAbsent(ck, k -> new int[4])[slot] = count;
-        if (cached == null) recountChunk(w, cx, cz);
+        recountChunk(w, cx, cz);
         return false;
     }
 
@@ -138,18 +140,48 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
             int[] c = new int[4];
             for (Entity entity : entities) {
                 if (whitelist.contains(entity.getType())) continue;
-                if (entity instanceof Mob) c[0]++;
-                else if (entity instanceof Item) c[1]++;
-                else if (entity instanceof Vehicle) c[2]++;
-                else if (entity instanceof Projectile) c[3]++;
+                int slot = slotOf(entity);
+                if (slot >= 0) c[slot]++;
             }
             counts.put(new ChunkKey(w.getUID(), cx, cz), c);
         } catch (Throwable ignored) {}
     }
 
+    private boolean paperWorldEventsPresent() {
+        try {
+            Class.forName("com.destroystokyo.paper.event.entity.EntityAddToWorldEvent");
+            Class.forName("com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent");
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     @Override
     public void load() {
         Bukkit.getPluginManager().registerEvents(this, plugin);
+        if (paperWorldEventsPresent()) {
+            try {
+                paperCountsListener = new PaperCountsListener();
+                Bukkit.getPluginManager().registerEvents((Listener) paperCountsListener, plugin);
+            } catch (Throwable t) {
+                plugin.getLogger().warning("[EntityLimiter] Paper world events unavailable, using periodic recount: " + t.getMessage());
+                paperCountsListener = null;
+            }
+        }
+        if (paperCountsListener == null) {
+            recountTask = Scheduler.runTimer(plugin, false, () -> {
+                for (org.bukkit.World w : getAllowedWorlds()) {
+                    Chunk[] loaded;
+                    try {
+                        loaded = w.getLoadedChunks();
+                    } catch (Throwable ignored) {
+                        continue;
+                    }
+                    for (Chunk chunk : loaded) recountChunk(w, chunk.getX(), chunk.getZ());
+                }
+            }, 30, 30, TimeUnit.SECONDS);
+        }
         SupportManager sm = SupportManager.getInstance();
         boolean folia = sm != null && sm.isFolia();
         if (overflowEnabled) {
@@ -184,6 +216,8 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
                             int c = 0, i = 0, v = 0, p = 0;
                             for (Entity entity : entities) {
                                 if (whitelist.contains(entity.getType()) || (entity.getCustomName() != null && !getSection().getBoolean("overflow_purge.types.named", false))) continue;
+                                if (entity instanceof LivingEntity living
+                                        && EntityProtection.isProtected(living, true, true, true, true)) continue;
                                 boolean removed = false;
                                 if (entity instanceof Mob) { if (c < limitCreatures) c++; else if (overflowCreatures) removed = true; }
                                 else if (entity instanceof Item) { if (i < limitItems) i++; else if (overflowItems) removed = true; }
@@ -197,17 +231,19 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
                 overflowTask = Scheduler.runTimer(plugin, false, purge, overflowInterval, overflowInterval, TimeUnit.SECONDS);
             }
         }
-        recountTask = Scheduler.runTimer(plugin, true, () -> {
-            for (org.bukkit.World w : getAllowedWorlds()) {
-                Chunk[] loaded;
-                try {
-                    loaded = w.getLoadedChunks();
-                } catch (Throwable ignored) {
-                    continue;
-                }
-                for (Chunk chunk : loaded) recountChunk(w, chunk.getX(), chunk.getZ());
-            }
-        }, 30, 30, TimeUnit.SECONDS);
+    }
+
+    /** Paper-only listener, loaded only when the event classes exist. Never touch on Spigot. */
+    public final class PaperCountsListener implements Listener {
+        @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+        public void onAdd(com.destroystokyo.paper.event.entity.EntityAddToWorldEvent e) {
+            bump(e.getEntity(), +1);
+        }
+
+        @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+        public void onRemove(com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent e) {
+            bump(e.getEntity(), -1);
+        }
     }
 
     @Override
@@ -247,6 +283,12 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
     @Override
     public void disable() {
         HandlerList.unregisterAll(this);
+        if (paperCountsListener instanceof Listener l) {
+            try {
+                HandlerList.unregisterAll(l);
+            } catch (Throwable ignored) {}
+            paperCountsListener = null;
+        }
         if (overflowTask != null) overflowTask.cancel();
         if (recountTask != null) recountTask.cancel();
         counts.clear();
