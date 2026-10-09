@@ -5,6 +5,13 @@ LagShield:
     - world_the_end
     - world_nether
   values:
+    # Prefer MSPT (fast, per-tick) over the 1-minute TPS average for throttle
+    # decisions. Falls back to TPS when the fork exposes no MSPT source.
+    prefer_mspt: true
+    # Hysteresis: dynamic distances only re-apply after min_hold_seconds since
+    # the last change, stopping chunk-resend churn on flapping TPS.
+    hysteresis:
+      min_hold_seconds: 60
     # TPS thresholds at which specific features will be disabled.
     # Set to -1 to completely disable the check for a given feature.
     tps_threshold:
