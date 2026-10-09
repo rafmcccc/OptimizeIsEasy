@@ -25,3 +25,6 @@ replay_pid*
 
 # Logs
 *.log
+
+# Local agent notes (personal, not committed)
+AGENT.md
