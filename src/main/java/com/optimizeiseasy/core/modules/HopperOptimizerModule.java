@@ -8,6 +8,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Hopper;
 import org.bukkit.event.EventHandler;
@@ -17,7 +18,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.Inventory;
@@ -26,14 +26,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
 public class HopperOptimizerModule extends AbstractModule implements Listener {
-    private final Map<String, LongAdder> chunkCount = new ConcurrentHashMap<>();
-    private final Map<String, Long> lastActivity = new ConcurrentHashMap<>();
-    private final Map<String, Long> lastFull = new ConcurrentHashMap<>();
+    private final Map<ChunkKey, LongAdder> chunkCount = new ConcurrentHashMap<>();
+    private final Map<HopperKey, Long> lastActivity = new ConcurrentHashMap<>();
+    private final Map<HopperKey, Long> lastFull = new ConcurrentHashMap<>();
     private BukkitTask validateTask, cleanupTask;
     private boolean chunkLimitEnabled, emptyOptimization, fullOptimization;
     private int maxPerChunk, checkInterval, emptyCheckDelay, fullCheckDelay;
@@ -41,12 +42,57 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
 
     public HopperOptimizerModule(OptimizeIsEasyPlugin plugin) { super(plugin, "HopperOptimizer"); }
 
-    private static String locKey(Location l) {
-        return l.getWorld().getName() + ":" + l.getBlockX() + ":" + l.getBlockY() + ":" + l.getBlockZ();
+    static final class ChunkKey {
+        final UUID world;
+        final int x, z;
+        ChunkKey(UUID world, int x, int z) { this.world = world; this.x = x; this.z = z; }
+        static ChunkKey of(Location l) { return new ChunkKey(l.getWorld().getUID(), l.getBlockX() >> 4, l.getBlockZ() >> 4); }
+        static ChunkKey of(World w, int x, int z) { return new ChunkKey(w.getUID(), x, z); }
+        @Override public boolean equals(Object o) {
+            if (!(o instanceof ChunkKey k)) return false;
+            return x == k.x && z == k.z && world.equals(k.world);
+        }
+        @Override public int hashCode() { return world.hashCode() * 31 + x * 31 + z; }
     }
 
-    private static String chunkKey(Location l) {
-        return l.getWorld().getName() + ":" + (l.getBlockX() >> 4) + ":" + (l.getBlockZ() >> 4);
+    static final class HopperKey {
+        final UUID world;
+        final long packed;
+        HopperKey(UUID world, long packed) { this.world = world; this.packed = packed; }
+        static long pack(int x, int y, int z) {
+            return ((long) (x & 0x3FFFFFF) << 38) | ((long) (z & 0x3FFFFFF) << 12) | (y & 0xFFF);
+        }
+        static HopperKey of(Location l) { return new HopperKey(l.getWorld().getUID(), pack(l.getBlockX(), l.getBlockY(), l.getBlockZ())); }
+        int x() { return (int) (packed >> 38); }
+        int y() {
+            int y = (int) (packed & 0xFFF);
+            return y >= 2048 ? y - 4096 : y;
+        }
+        int z() {
+            int z = (int) ((packed >> 12) & 0x3FFFFFF);
+            return z >= (1 << 25) ? z - (1 << 26) : z;
+        }
+        @Override public boolean equals(Object o) {
+            if (!(o instanceof HopperKey k)) return false;
+            return packed == k.packed && world.equals(k.world);
+        }
+        @Override public int hashCode() { return world.hashCode() * 31 + Long.hashCode(packed); }
+    }
+
+    private static InventoryHolder holderNoSnapshot(Inventory inv) {
+        try {
+            return inv.getHolder(false);
+        } catch (Throwable t) {
+            return inv.getHolder();
+        }
+    }
+
+    private static BlockState[] tileEntitiesNoSnapshot(Chunk chunk) {
+        try {
+            return chunk.getTileEntities(false);
+        } catch (Throwable t) {
+            return chunk.getTileEntities();
+        }
     }
 
     private static Location holderLoc(InventoryHolder h) {
@@ -61,22 +107,22 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onMove(InventoryMoveItemEvent e) {
-        InventoryHolder src = e.getSource().getHolder();
-        InventoryHolder dst = e.getDestination().getHolder();
+        InventoryHolder src = holderNoSnapshot(e.getSource());
+        InventoryHolder dst = holderNoSnapshot(e.getDestination());
         long now = System.currentTimeMillis();
 
         if (src instanceof Hopper) {
             Location l = holderLoc(src);
             if (l != null && canContinue(l.getWorld())) {
                 if (chunkLimitEnabled && overCap(l)) { e.setCancelled(true); return; }
-                lastActivity.put(locKey(l), now);
+                lastActivity.put(HopperKey.of(l), now);
             }
         }
         if (dst instanceof Hopper) {
             Location l = holderLoc(dst);
             if (l == null || !canContinue(l.getWorld())) return;
             if (chunkLimitEnabled && overCap(l)) { e.setCancelled(true); return; }
-            String key = locKey(l);
+            HopperKey key = HopperKey.of(l);
             if (fullOptimization && isFullFor(e.getDestination(), e.getItem())) {
                 Long lf = lastFull.get(key);
                 if (lf != null && now - lf < fullCheckDelay) { e.setCancelled(true); return; }
@@ -90,9 +136,16 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlace(BlockPlaceEvent e) {
-        if (e.getBlock().getType() == Material.HOPPER) addHopper(e.getBlock().getLocation());
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlaceCap(BlockPlaceEvent e) {
+        if (e.getBlock().getType() != Material.HOPPER) return;
+        if (!chunkLimitEnabled || !canContinue(e.getBlock().getWorld())) return;
+        if (overCap(e.getBlock().getLocation())) {
+            e.setCancelled(true);
+            e.getPlayer().sendMessage("§cHopper limit reached in this chunk (" + maxPerChunk + ").");
+            return;
+        }
+        addHopper(e.getBlock().getLocation());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -108,14 +161,16 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent e) {
-        String prefix = e.getWorld().getName() + ":" + e.getChunk().getX() + ":" + e.getChunk().getZ() + ":";
-        chunkCount.remove(e.getWorld().getName() + ":" + e.getChunk().getX() + ":" + e.getChunk().getZ());
-        lastActivity.keySet().removeIf(k -> k.startsWith(prefix));
-        lastFull.keySet().removeIf(k -> k.startsWith(prefix));
+        ChunkKey ck = ChunkKey.of(e.getWorld(), e.getChunk().getX(), e.getChunk().getZ());
+        chunkCount.remove(ck);
+        UUID uid = e.getWorld().getUID();
+        int cx = e.getChunk().getX(), cz = e.getChunk().getZ();
+        lastActivity.keySet().removeIf(k -> k.world.equals(uid) && (k.x() >> 4) == cx && (k.z() >> 4) == cz);
+        lastFull.keySet().removeIf(k -> k.world.equals(uid) && (k.x() >> 4) == cx && (k.z() >> 4) == cz);
     }
 
     private boolean overCap(Location l) {
-        LongAdder c = chunkCount.get(chunkKey(l));
+        LongAdder c = chunkCount.get(ChunkKey.of(l));
         return c != null && c.intValue() >= maxPerChunk;
     }
 
@@ -139,33 +194,33 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
 
     private void addHopper(Location l) {
         if (l == null || l.getWorld() == null) return;
-        chunkCount.computeIfAbsent(chunkKey(l), k -> new LongAdder()).increment();
-        lastActivity.put(locKey(l), System.currentTimeMillis());
+        chunkCount.computeIfAbsent(ChunkKey.of(l), k -> new LongAdder()).increment();
+        lastActivity.put(HopperKey.of(l), System.currentTimeMillis());
     }
 
     private void removeHopper(Location l) {
         if (l == null || l.getWorld() == null) return;
-        String ck = chunkKey(l);
+        ChunkKey ck = ChunkKey.of(l);
         LongAdder c = chunkCount.get(ck);
         if (c != null) {
             c.decrement();
             if (c.intValue() <= 0) chunkCount.remove(ck);
         }
-        String key = locKey(l);
+        HopperKey key = HopperKey.of(l);
         lastActivity.remove(key);
         lastFull.remove(key);
     }
 
     private void scanChunk(Chunk chunk) {
         try {
-            for (BlockState state : chunk.getTileEntities()) {
+            for (BlockState state : tileEntitiesNoSnapshot(chunk)) {
                 if (state instanceof Hopper hopper) {
                     try {
                         Location l = hopper.getLocation();
                         if (l == null || l.getWorld() == null || !canContinue(l.getWorld())) continue;
-                        String key = locKey(l);
+                        HopperKey key = HopperKey.of(l);
                         if (!lastActivity.containsKey(key)) {
-                            chunkCount.computeIfAbsent(chunkKey(l), k -> new LongAdder()).increment();
+                            chunkCount.computeIfAbsent(ChunkKey.of(l), k -> new LongAdder()).increment();
                             lastActivity.put(key, System.currentTimeMillis());
                         }
                     } catch (Throwable t) {
@@ -180,6 +235,15 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
 
     @Override
     public void load() {
+        boolean moveEventDisabled = false;
+        try {
+            org.bukkit.configuration.file.YamlConfiguration paperGlobal =
+                    com.optimizeiseasy.core.utils.ServerFileUtil.loadYaml("config/paper-global.yml");
+            moveEventDisabled = paperGlobal.getBoolean("hopper.disable-move-event", false);
+        } catch (Throwable ignored) {}
+        if (moveEventDisabled) {
+            plugin.getLogger().warning("[HopperOptimizer] paper hopper.disable-move-event=true: InventoryMoveItemEvent never fires, transfer throttling disabled (place cap + scan still active).");
+        }
         Bukkit.getPluginManager().registerEvents(this, plugin);
         for (World w : getAllowedWorlds()) {
             try {
@@ -189,16 +253,41 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
             }
         }
         Runnable validate = () -> {
-            for (String key : new java.util.HashSet<>(lastActivity.keySet())) {
+            for (HopperKey key : new java.util.HashSet<>(lastActivity.keySet())) {
                 try {
-                    String[] p = key.split(":");
-                    World w = Bukkit.getWorld(p[0]);
+                    World w = Bukkit.getWorld(key.world);
                     if (w == null) { lastActivity.remove(key); lastFull.remove(key); continue; }
-                    Chunk chunk = w.getChunkAt(Integer.parseInt(p[1]) >> 4, Integer.parseInt(p[2]) >> 4);
-                    if (!chunk.isLoaded()) removeHopper(new Location(w, Integer.parseInt(p[1]), Integer.parseInt(p[2]), Integer.parseInt(p[3])));
-                    else {
-                        BlockState state = chunk.getWorld().getBlockAt(Integer.parseInt(p[1]), Integer.parseInt(p[2]), Integer.parseInt(p[3])).getState();
-                        if (!(state instanceof Hopper)) removeHopper(state.getLocation());
+                    int bx = key.x(), by = key.y(), bz = key.z();
+                    if (!w.isChunkLoaded(bx >> 4, bz >> 4)) {
+                        lastActivity.remove(key);
+                        lastFull.remove(key);
+                        continue;
+                    }
+                    Block b;
+                    try {
+                        b = w.getBlockAt(bx, by, bz);
+                    } catch (Throwable t) {
+                        lastActivity.remove(key);
+                        lastFull.remove(key);
+                        continue;
+                    }
+                    Material type;
+                    try {
+                        type = b.getType();
+                    } catch (Throwable t) {
+                        lastActivity.remove(key);
+                        lastFull.remove(key);
+                        continue;
+                    }
+                    if (type != Material.HOPPER) {
+                        lastActivity.remove(key);
+                        lastFull.remove(key);
+                        ChunkKey ck = ChunkKey.of(w, bx >> 4, bz >> 4);
+                        LongAdder c = chunkCount.get(ck);
+                        if (c != null) {
+                            c.decrement();
+                            if (c.intValue() <= 0) chunkCount.remove(ck);
+                        }
                     }
                 } catch (Throwable t) {
                     lastActivity.remove(key);
@@ -208,7 +297,7 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
         };
         Runnable cleanup = () -> {
             long now = System.currentTimeMillis();
-            for (Map.Entry<String, Long> en : new java.util.HashSet<>(lastActivity.entrySet())) {
+            for (Map.Entry<HopperKey, Long> en : new java.util.HashSet<>(lastActivity.entrySet())) {
                 if (now - en.getValue() > inactiveMs) {
                     lastActivity.remove(en.getKey());
                     lastFull.remove(en.getKey());

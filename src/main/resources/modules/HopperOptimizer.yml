@@ -6,10 +6,15 @@ HopperOptimizer:
     smart_throttling: true
 
     # Enable chunk-based hopper limiting
+    # Enforced at placement time (extra hoppers are denied); transfer-time
+    # cancellation stays as a safety net for pre-existing lag machines.
     chunk_limit:
       enabled: true
       # Maximum hoppers allowed per chunk
       limit: 24
+
+    # Note: when Paper sets hopper.disable-move-event=true, InventoryMoveItemEvent
+    # never fires and transfer throttling below is inert; place cap + scan stay active.
 
     # Optimizes hoppers that have nothing to transfer
     empty_hopper_optimization:
