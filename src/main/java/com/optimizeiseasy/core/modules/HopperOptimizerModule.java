@@ -114,14 +114,14 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
         if (src instanceof Hopper) {
             Location l = holderLoc(src);
             if (l != null && canContinue(l.getWorld())) {
-                if (chunkLimitEnabled && overCap(l)) { e.setCancelled(true); return; }
+                if (chunkLimitEnabled && overCapForMove(l)) { e.setCancelled(true); return; }
                 lastActivity.put(HopperKey.of(l), now);
             }
         }
         if (dst instanceof Hopper) {
             Location l = holderLoc(dst);
             if (l == null || !canContinue(l.getWorld())) return;
-            if (chunkLimitEnabled && overCap(l)) { e.setCancelled(true); return; }
+            if (chunkLimitEnabled && overCapForMove(l)) { e.setCancelled(true); return; }
             HopperKey key = HopperKey.of(l);
             if (fullOptimization && isFullFor(e.getDestination(), e.getItem())) {
                 Long lf = lastFull.get(key);
@@ -140,10 +140,12 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
     public void onPlaceCap(BlockPlaceEvent e) {
         if (e.getBlock().getType() != Material.HOPPER) return;
         if (!chunkLimitEnabled || !canContinue(e.getBlock().getWorld())) return;
-        if (overCap(e.getBlock().getLocation())) {
-            e.setCancelled(true);
-            e.getPlayer().sendMessage("§cHopper limit reached in this chunk (" + maxPerChunk + ").");
-            return;
+        if (isFullForPlace(e.getBlock().getLocation())) {
+            if (recountChunk(e.getBlock().getChunk()) >= maxPerChunk) {
+                e.setCancelled(true);
+                e.getPlayer().sendMessage("§cHopper limit reached in this chunk (" + maxPerChunk + ").");
+                return;
+            }
         }
         addHopper(e.getBlock().getLocation());
     }
@@ -170,8 +172,34 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
     }
 
     private boolean overCap(Location l) {
+        return isFullForPlace(l);
+    }
+
+    static boolean isFullForPlace(int count, int max) { return count >= max; }
+    static boolean isOverForMove(int count, int max) { return count > max; }
+
+    private boolean isFullForPlace(Location l) {
         LongAdder c = chunkCount.get(ChunkKey.of(l));
-        return c != null && c.intValue() >= maxPerChunk;
+        return c != null && isFullForPlace(c.intValue(), maxPerChunk);
+    }
+
+    private boolean overCapForMove(Location l) {
+        LongAdder c = chunkCount.get(ChunkKey.of(l));
+        return c != null && isOverForMove(c.intValue(), maxPerChunk);
+    }
+
+    private int recountChunk(Chunk chunk) {
+        int n = 0;
+        try {
+            for (BlockState state : tileEntitiesNoSnapshot(chunk)) {
+                if (state instanceof Hopper) n++;
+            }
+        } catch (Throwable ignored) {}
+        try {
+            chunkCount.put(ChunkKey.of(chunk.getWorld(), chunk.getX(), chunk.getZ()), new LongAdder());
+            chunkCount.get(ChunkKey.of(chunk.getWorld(), chunk.getX(), chunk.getZ())).add(n);
+        } catch (Throwable ignored) {}
+        return n;
     }
 
     private boolean isEmpty(Inventory inv) {
