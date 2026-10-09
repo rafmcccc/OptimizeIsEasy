@@ -404,7 +404,7 @@ cd OptimizeIsEasy
 ./gradlew clean build
 ```
 
-Jar goes to `build/libs/OptimizeIsEasy-3.1.1.jar`.
+Jar goes to `build/libs/OptimizeIsEasy-3.1.2.jar`.
 
 Requires Java 21 to build. No Paperweight, no NMS toolchain, no shaded runtime dependency.
 

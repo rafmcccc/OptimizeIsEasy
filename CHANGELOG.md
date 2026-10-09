@@ -1,5 +1,17 @@
 # Changelog
 
+## Upgrading to 3.1.2
+
+Drop the new jar in and restart. No config changes needed.
+
+**EntityLimiter survives chunk-border wander.** Cached-full spawns rescan the chunk once before denying, so a mob that wanders A→B cannot phantom-block A. `bump()` updates existing entries only — no more `[1,0,0,0]` seeds in full chunks after reload. Per-entity work returns early when limits are off or the world is disabled.
+
+**Hopper move path recounts too.** Same confirm-before-cancel as placement: a phantom 25 recounts to a real 24 and the move is allowed.
+
+**LagShield throttles react in ~1s.** Metric refresh runs on its own 1-second async timer (cheap MSPT/TPS read); distance changes stay on the 20s timer with per-setting hold.
+
+---
+
 ## Upgrading to 3.1.1
 
 Drop the new jar in and restart. No config changes needed.
