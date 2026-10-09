@@ -51,4 +51,28 @@ class V310Test {
         assertThat("v1.2.3avel".replaceFirst("^v", "")).isEqualTo("1.2.3avel");
         assertThat("vv1.0".replaceFirst("^v", "")).isEqualTo("v1.0");
     }
+
+    @Test
+    void hopperCapBoundary() throws Exception {
+        Class<?> keyClass = Class.forName("com.optimizeiseasy.core.modules.HopperOptimizerModule");
+        var place = keyClass.getDeclaredMethod("isFullForPlace", int.class, int.class);
+        var move = keyClass.getDeclaredMethod("isOverForMove", int.class, int.class);
+        place.setAccessible(true);
+        move.setAccessible(true);
+        assertThat((boolean) place.invoke(null, 24, 24)).as("place at limit denies").isTrue();
+        assertThat((boolean) place.invoke(null, 23, 24)).as("place under limit allows").isFalse();
+        assertThat((boolean) move.invoke(null, 24, 24)).as("move at limit still works").isFalse();
+        assertThat((boolean) move.invoke(null, 25, 24)).as("move over limit cancels").isTrue();
+    }
+
+    @Test
+    void entitySlotMapping() throws Exception {
+        Class<?> mod = Class.forName("com.optimizeiseasy.core.modules.EntityLimiterModule");
+        var slotOf = mod.getDeclaredMethod("slotOf", org.bukkit.entity.Entity.class);
+        slotOf.setAccessible(true);
+        assertThat((int) slotOf.invoke(null, org.mockito.Mockito.mock(org.bukkit.entity.Zombie.class))).isEqualTo(0);
+        assertThat((int) slotOf.invoke(null, org.mockito.Mockito.mock(org.bukkit.entity.Item.class))).isEqualTo(1);
+        assertThat((int) slotOf.invoke(null, org.mockito.Mockito.mock(org.bukkit.entity.Minecart.class))).isEqualTo(2);
+        assertThat((int) slotOf.invoke(null, org.mockito.Mockito.mock(org.bukkit.entity.Arrow.class))).isEqualTo(3);
+    }
 }
