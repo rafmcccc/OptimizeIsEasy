@@ -33,7 +33,7 @@ public class UpdateChecker {
                 if (idx == -1) return;
                 int s = body.indexOf("\"", idx + 11) + 1;
                 int e = body.indexOf("\"", s);
-                latest = body.substring(s, e).replace("v", "");
+                latest = body.substring(s, e).replaceFirst("^v", "");
                 if (!latest.equals(current) && isNewer(latest, current)) {
                     String msg = "Update available " + current + " -> " + latest + " at https://github.com/rafmcccc/OptimizeIsEasy/releases";
                     plugin.getLogger().warning(msg);
@@ -45,7 +45,7 @@ public class UpdateChecker {
 
     public String getLatest() { return latest; }
 
-    private boolean isNewer(String latest, String current) {
+    public static boolean isNewer(String latest, String current) {
         try {
             String[] la = latest.split("\\.");
             String[] ca = current.split("\\.");

@@ -15,6 +15,15 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Scheduler {
     private Scheduler() {}
+    private static volatile boolean fallbackWarned = false;
+
+    private static void warnFallbackOnce(Plugin plugin, String what) {
+        if (fallbackWarned) return;
+        fallbackWarned = true;
+        try {
+            plugin.getLogger().warning("Scheduler " + what + " via fork failed, using Bukkit scheduler fallback.");
+        } catch (Throwable ignored) {}
+    }
 
     public static BukkitTask runNow(Plugin plugin, boolean async, @Nullable Location loc, Runnable runnable) {
         SupportManager sm = SupportManager.getInstance();
@@ -22,7 +31,7 @@ public final class Scheduler {
             try {
                 return sm.getFork().runNow(async, loc, runnable);
             } catch (Throwable t) {
-                plugin.getLogger().fine("Scheduler.runNow via fork failed, falling back: " + t.getMessage());
+                warnFallbackOnce(plugin, "runNow");
             }
         }
         try {
@@ -40,7 +49,7 @@ public final class Scheduler {
             try {
                 return sm.getFork().runLater(async, runnable, delay, unit);
             } catch (Throwable t) {
-                plugin.getLogger().fine("Scheduler.runLater via fork failed, falling back: " + t.getMessage());
+                warnFallbackOnce(plugin, "runLater");
             }
         }
         try {
@@ -59,7 +68,7 @@ public final class Scheduler {
             try {
                 return sm.getFork().runTimer(async, runnable, initialDelay, delay, unit);
             } catch (Throwable t) {
-                plugin.getLogger().fine("Scheduler.runTimer via fork failed, falling back: " + t.getMessage());
+                warnFallbackOnce(plugin, "runTimer");
             }
         }
         try {

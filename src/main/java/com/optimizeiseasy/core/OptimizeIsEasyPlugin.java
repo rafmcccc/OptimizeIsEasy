@@ -60,13 +60,13 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
             getLogger().setLevel(Level.INFO);
         }
         new SupportManager(this);
-        try { softwareDetector = new SoftwareDetector(this); } catch (Throwable t) { getLogger().fine("Software detect failed: " + t.getMessage()); }
+        try { softwareDetector = new SoftwareDetector(this); } catch (Throwable t) { getLogger().warning("Software detect failed: " + t.getMessage()); }
 
         moduleManager = new ModuleManager(this);
         moduleManager.loadAll();
-        try { new BadPluginDetector(this).warnIfBad(); } catch (Throwable t) { getLogger().fine("BadPlugin check failed: " + t.getMessage()); }
+        try { new BadPluginDetector(this).warnIfBad(); } catch (Throwable t) { getLogger().warning("BadPlugin check failed: " + t.getMessage()); }
         // Register API
-        try { Bukkit.getServicesManager().register(OptimizeIsEasyAPI.class, this, this, ServicePriority.Normal); } catch (Throwable t) { getLogger().fine("API register failed: " + t.getMessage()); }
+        try { Bukkit.getServicesManager().register(OptimizeIsEasyAPI.class, this, this, ServicePriority.Normal); } catch (Throwable t) { getLogger().warning("API register failed: " + t.getMessage()); }
 
         // Register commands - only two allowed
         if (getCommand("optimize") != null) {
@@ -84,18 +84,18 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
                 BorderCommand bcmd = new BorderCommand(this);
                 getCommand("border").setExecutor(bcmd);
                 getCommand("border").setTabCompleter(bcmd);
-            } catch (Throwable t) { getLogger().fine("Border command init failed: " + t.getMessage()); }
+            } catch (Throwable t) { getLogger().warning("Border command init failed: " + t.getMessage()); }
         }
 
         // Soft hooks - no hard dep, safe if missing
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            try { new PlaceholderHook(this).register(); getLogger().fine("PlaceholderAPI hook registered"); } catch (Throwable t) { getLogger().fine("PAPI hook failed: " + t.getMessage()); }
+            try { new PlaceholderHook(this).register(); getLogger().fine("PlaceholderAPI hook registered"); } catch (Throwable t) { getLogger().warning("PAPI hook failed: " + t.getMessage()); }
         }
         // GUI and update checker
-        try { gui = new OptimizeGui(this); } catch (Throwable t) { getLogger().fine("GUI init failed: " + t.getMessage()); }
-        try { kryptonGui = new KryptonGui(this); } catch (Throwable t) { getLogger().fine("Krypton GUI init failed: " + t.getMessage()); }
-        try { edbGui = new EdbGui(this); } catch (Throwable t) { getLogger().fine("EDB GUI init failed: " + t.getMessage()); }
-        try { Bukkit.getPluginManager().registerEvents(new RestartAlertListener(this), this); } catch (Throwable t) { getLogger().fine("RestartAlert init failed: " + t.getMessage()); }
+        try { gui = new OptimizeGui(this); } catch (Throwable t) { getLogger().warning("GUI init failed: " + t.getMessage()); }
+        try { kryptonGui = new KryptonGui(this); } catch (Throwable t) { getLogger().warning("Krypton GUI init failed: " + t.getMessage()); }
+        try { edbGui = new EdbGui(this); } catch (Throwable t) { getLogger().warning("EDB GUI init failed: " + t.getMessage()); }
+        try { Bukkit.getPluginManager().registerEvents(new RestartAlertListener(this), this); } catch (Throwable t) { getLogger().warning("RestartAlert init failed: " + t.getMessage()); }
         try {
             updateChecker = new UpdateChecker(this);
             updateChecker.checkAsync();
@@ -106,11 +106,11 @@ public final class OptimizeIsEasyPlugin extends JavaPlugin implements OptimizeIs
                     if (e.getPlayer().isOp() && updateChecker.getLatest() != null) {
                         String cur = getDescription().getVersion();
                         String lat = updateChecker.getLatest();
-                        if (!cur.equals(lat)) e.getPlayer().sendMessage("§e[OptimizeIsEasy] §aUpdate available " + cur + " -> " + lat);
+                        if (com.optimizeiseasy.core.utils.UpdateChecker.isNewer(lat, cur)) e.getPlayer().sendMessage("§e[OptimizeIsEasy] §aUpdate available " + cur + " -> " + lat);
                     }
                 }
             }, this);
-        } catch (Throwable t) { getLogger().fine("Update checker init failed: " + t.getMessage()); }
+        } catch (Throwable t) { getLogger().warning("Update checker init failed: " + t.getMessage()); }
 
         getLogger().info("OptimizeIsEasy enabled");
     }

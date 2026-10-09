@@ -373,8 +373,8 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
         for (String s : getSection().getStringList("spawn_reasons")) {
             try {
                 reasons.add(CreatureSpawnEvent.SpawnReason.valueOf(s));
-            } catch (Exception ignored) {
-                // Unknown reason names are skipped, never fatal.
+            } catch (Exception e) {
+                plugin.getLogger().warning("[MobAiReducer] ignoring unknown spawn reason '" + s + "'");
             }
         }
         async = getSection().getBoolean("async", true);
@@ -393,8 +393,8 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
         for (String s : getSection().getStringList("list")) {
             try {
                 list.add(EntityType.valueOf(s));
-            } catch (Exception ignored) {
-                // Unknown entity names are skipped, never fatal.
+            } catch (Exception e) {
+                plugin.getLogger().warning("[MobAiReducer] ignoring unknown entity type '" + s + "' in list");
             }
         }
         collides = getSection().getBoolean("collides", true);
