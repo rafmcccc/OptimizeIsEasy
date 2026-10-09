@@ -59,14 +59,16 @@ WorldCleaner:
       enabled: true
       # If "true" removes named creatures
       named: false
+      # Protection: these are never removed even in blacklist mode
+      protect:
+        armor_stand: true
+        tamed: true
+        leashed: true
+        ridden: true
       # If "true" drops items when removing creatures
       drop_items: false
-      # If "true" removes stacked entities (WildStacker, RoseStacker and UltimateStacker hook)
-      stacked: true
       # If "true" removes levelled mobs (LevelledMobs hook)
       levelled: true
-      # If "true" keeps entities from ModelEngine or MythicMobs
-      ignore_models: true
       # If "true" only listed entities will be removed; if false, all unlisted entities will be removed
       list_mode: true
       # Allowed creatures: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/EntityType.html
