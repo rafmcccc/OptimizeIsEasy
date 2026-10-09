@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.optimizeiseasy"
-version = "3.1.1"
+version = "3.1.2"
 
 // Compiled against the OLDEST supported API. javac refuses anything newer than the
 // compile target, so every symbol we call provably exists on 1.21.1. CI also compiles
