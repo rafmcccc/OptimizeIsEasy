@@ -404,7 +404,7 @@ cd OptimizeIsEasy
 ./gradlew clean build
 ```
 
-Jar goes to `build/libs/OptimizeIsEasy-3.1.0.jar`.
+Jar goes to `build/libs/OptimizeIsEasy-3.1.1.jar`.
 
 Requires Java 21 to build. No Paperweight, no NMS toolchain, no shaded runtime dependency.
 
@@ -414,6 +414,18 @@ Both API ends are one flag apart:
 ./gradlew clean test                                                        # oldest API, what ships
 ./gradlew compileJava -PpaperApi=26.2.build.132-stable -Pjdk=25             # newest API, needs JDK 25
 ```
+
+---
+
+## Upgrading to 3.1.1
+
+Drop the new jar in and restart. No config changes needed.
+
+**Hopper cap no longer freezes legal chunks.** Transfer cancel now fires only over the limit (`>`), placement deny stays at the limit (`>=`). A chunk with exactly 24 hoppers works again. Deny path recounts the chunk first, so explosion/piston breaks cannot false-trigger "limit reached".
+
+**EntityLimiter counts via world events.** Async recount task dropped; Paper `EntityAddToWorldEvent`/`EntityRemoveFromWorldEvent` keep cached counts sync (fixes stuck item counts too). Cache trusted on hit — no scan under the limit. Overflow purge skips protected mobs (armor stand/tamed/leashed/ridden).
+
+**LagShield fully cached.** `reliable()` reads a field refreshed every 20s — zero `Bukkit.getTPS()` allocs per event. View/sim/tick each hold independently. Originals file written only on new worlds.
 
 ---
 
