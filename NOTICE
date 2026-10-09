@@ -220,3 +220,12 @@ The world-border GUI (BorderControl module) is a port of Border by Gab.
      license file for it was found in this repo. Until confirmed, treat
      the Border-derived GUI code as all-rights-reserved by its author and
      do not relicense it. -->
+
+3. LagFixer by lajczik (GPL-3.0)
+-------------------------------------------------
+Mob AI reduction is inspired by LagFixer by lajczik
+(https://github.com/lajczik/lagfixer), which is licensed under GPL-3.0.
+The module was reimplemented against the public Paper Goal API with no
+LagFixer source copied in. If that reimplementation is not clean-room,
+the GPL-3.0 obligations apply to the derived parts — get a second look
+before redistributing.
