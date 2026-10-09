@@ -27,8 +27,8 @@ Empty server means frozen ticks. No entities ticking. No daylight cycle. Just yo
 **It cleans without you asking.**  
 Ground items, stray mobs, projectile spam. They pile up and your TPS drops. OptimizeIsEasy sweeps them on schedule, and you can force a sweep with one command when you need it now.
 
-**It stays smart when TPS drops.**  
-When your server starts to choke, it does not just watch. It throttles hoppers, caps redstone, trims explosions, and lowers view distance just enough to keep you above 19 TPS. No manual panic.
+**It stays smart when TPS drops.**
+When your server starts to choke, it does not just watch. It throttles hoppers, caps redstone, trims explosions, and lowers view distance to protect TPS. No manual panic. No benchmark numbers ship with this claim — run spark before/after on your own hardware.
 
 **It tunes your server files.**  
 One command applies a full optimisation profile to `server.properties`, `bukkit.yml`, `spigot.yml`, the Paper global and world configs, Purpur, Pufferfish, Gale and Leaf. Originals are backed up first, and a restart applies everything.
@@ -404,7 +404,7 @@ cd OptimizeIsEasy
 ./gradlew clean build
 ```
 
-Jar goes to `build/libs/OptimizeIsEasy-3.0.0.jar`.
+Jar goes to `build/libs/OptimizeIsEasy-3.1.0.jar`.
 
 Requires Java 21 to build. No Paperweight, no NMS toolchain, no shaded runtime dependency.
 
@@ -414,6 +414,22 @@ Both API ends are one flag apart:
 ./gradlew clean test                                                        # oldest API, what ships
 ./gradlew compileJava -PpaperApi=26.2.build.132-stable -Pjdk=25             # newest API, needs JDK 25
 ```
+
+---
+
+## Upgrading to 3.1.0
+
+Drop the new jar in and restart. Config files are merged in place, so nothing to delete. Optimize + stability only, no new modules:
+
+**Hopper hot path is cheaper.** Packed long keys instead of per-event strings, `getHolder(false)` / `getTileEntities(false)` (no snapshots), validate uses `isChunkLoaded` + `getType()` (no chunk loads, no block snapshots). Chunk cap now denies placement of extras instead of starving the whole chunk on transfer.
+
+**LagShield caches and holds.** One MSPT-first reading per second shared by all events (no more 2x `getTPS()` per redstone/hopper/spawn), `hysteresis.min_hold_seconds: 60` stops 20s chunk-resend churn, originals persist to `lagshield-originals.yml` so a crash while throttled cannot become the next boot's baseline.
+
+**EntityLimiter stops loading chunks.** `isChunkLoaded(x>>4,z>>4)` guard before counting, cached per-chunk counts (O(1) per spawn), `ItemSpawnEvent` covered alongside drops. Overflow purge stays off on Folia with a warning.
+
+**Cleaners are safer.** WorldCleaner skips armor stands, tamed, leashed and ridden mobs by default (`creatures.protect.*`), timed purge stays off on Folia, `items.blacklist` no longer leaks across reloads. Dead keys `creatures.stacked` / `ignore_models` removed. Invalid Material/EntityType names now warn.
+
+**Failures are louder.** GUI/command/hook init failures and scheduler fallbacks log at WARNING. Join update notice reuses `isNewer` (no false "update available" on newer builds), tag strips one leading `v` only.
 
 ---
 
@@ -512,8 +528,8 @@ Yes, but only through the `leaf` and `gale` sections of the profile, and only fo
 **Why did a profile run say some keys were skipped?**  
 Because your server version does not have them. Forks add and rename options between Minecraft versions, and an absent key is skipped rather than written, so nothing your server cannot read is ever added. The count in the summary is the number of those keys.
 
-**Does it work on Folia?**  
-Partially. Scheduling goes through the region scheduler, but `Bukkit.getTPS()` does not exist on Folia, so LagShield throttling and dynamic view/simulation/tick adjustments stay off there and log a warning instead of acting on a fake 20.0 reading. Untested on a live Folia server — please report what you see.
+**Does it work on Folia?**
+Partially. Scheduling goes through the region scheduler, event throttles still apply, but timed purges (WorldCleaner) and overflow purges (EntityLimiter) stay off on Folia in 3.1.0 — `world.getEntities()` / `getLoadedChunks()` from the global scheduler is not region-safe. Dynamic view/simulation/tick changes are also skipped on Folia. Untested on a live Folia server — please report what you see.
 
 ---
 
