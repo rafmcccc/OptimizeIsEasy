@@ -38,7 +38,7 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
     private final Map<UUID, Integer> origView = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> origSim = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> origTick = new ConcurrentHashMap<>();
-    private BukkitTask task;
+    private BukkitTask metricTask, distanceTask;
     private double entitySpawnTps, hopperTps, redstoneTps, projectilesTps, leavesTps, liquidTps, explosionsTps, fireworksTps;
     private boolean dv, ds, dt;
     private boolean preferMspt = true;
@@ -88,8 +88,16 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
         }
     }
 
-    private double readMetric() {
+    private void refreshMetric() {
         try {
+            tpsReliable = SupportManager.isTpsReliableNow();
+        } catch (Throwable ignored) {
+            tpsReliable = false;
+        }
+        if (tpsReliable) readMetric();
+    }
+
+    private double readMetric() {        try {
             SupportManager sm = SupportManager.getInstance();
             if (sm != null && sm.getFork() != null) {
                 if (preferMspt && sm.isSupportMspt()) {
@@ -119,13 +127,11 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
 
     @Override
     public void run() {
-        boolean reliableNow = SupportManager.isTpsReliableNow();
-        tpsReliable = reliableNow;
-        if (!reliableNow) {
+        if (!tpsReliable) {
             if (plugin.isDebug()) plugin.getLogger().fine("LagShield check skipped: no reliable TPS source on this server software.");
             return;
         }
-        double tps = readMetric();
+        double tps = cachedTps;
         long now = System.currentTimeMillis();
         boolean lowSpawn = tps < entitySpawnTps && entitySpawnTps != -1;
         boolean lowHopper = tps < hopperTps && hopperTps != -1;
@@ -268,8 +274,9 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
             foliaWarned = true;
             plugin.getLogger().warning("LagShield: Folia detected - dynamic view/simulation/tick changes are skipped (global scheduler cannot touch region data). Event throttles still apply.");
         }
-        readMetric();
-        task = Scheduler.runTimer(plugin, false, this, 20, 20, TimeUnit.SECONDS);
+        refreshMetric();
+        metricTask = Scheduler.runTimer(plugin, true, this::refreshMetric, 1, 1, TimeUnit.SECONDS);
+        distanceTask = Scheduler.runTimer(plugin, false, this, 20, 20, TimeUnit.SECONDS);
     }
 
     @Override
@@ -296,13 +303,21 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
     @Override
     public void disable() {
         HandlerList.unregisterAll(this);
-        if (task != null) {
+        if (metricTask != null) {
             try {
-                task.cancel();
+                metricTask.cancel();
+            } catch (Exception ex) {
+                plugin.getLogger().warning("LagShield metric task cancel failed: " + ex.getMessage());
+            }
+            metricTask = null;
+        }
+        if (distanceTask != null) {
+            try {
+                distanceTask.cancel();
             } catch (Exception ex) {
                 plugin.getLogger().warning("LagShield task cancel failed: " + ex.getMessage());
             }
-            task = null;
+            distanceTask = null;
         }
         restoreOriginals();
     }
