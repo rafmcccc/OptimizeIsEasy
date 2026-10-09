@@ -134,14 +134,7 @@ public class WorldCleanerModule extends AbstractModule {
     }
 
     public boolean clearCreature(LivingEntity ent) {
-        if (protectArmorStand && ent instanceof ArmorStand) return false;
-        if (protectTamed && ent instanceof Tameable tame && tame.isTamed()) return false;
-        try {
-            if (protectLeashed && ent.isLeashed()) return false;
-        } catch (Throwable ignored) {}
-        try {
-            if (protectRidden && (ent.getVehicle() != null || !ent.getPassengers().isEmpty())) return false;
-        } catch (Throwable ignored) {}
+        if (EntityProtection.isProtected(ent, protectArmorStand, protectTamed, protectLeashed, protectRidden)) return false;
         if (ent.getCustomName() != null && !creaturesNamed) return false;
         // Simplified list check: if list_mode true, only listed types removed
         boolean listMode = getSection().getBoolean("creatures.list_mode", true);
