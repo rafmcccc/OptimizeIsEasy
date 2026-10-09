@@ -46,8 +46,9 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
     private volatile double cachedTps = 20.0;
     private volatile double cachedMspt = 0;
     private volatile long cachedAt = 0;
+    private volatile boolean tpsReliable = true;
     private Integer lastView, lastSim, lastTick;
-    private long lastChangeAt = 0;
+    private long lastViewChange = 0, lastSimChange = 0, lastTickChange = 0;
     private boolean foliaWarned = false;
 
     public LagShieldModule(OptimizeIsEasyPlugin plugin) { super(plugin, "LagShield"); }
@@ -118,7 +119,9 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
 
     @Override
     public void run() {
-        if (!SupportManager.isTpsReliableNow()) {
+        boolean reliableNow = SupportManager.isTpsReliableNow();
+        tpsReliable = reliableNow;
+        if (!reliableNow) {
             if (plugin.isDebug()) plugin.getLogger().fine("LagShield check skipped: no reliable TPS source on this server software.");
             return;
         }
@@ -128,12 +131,15 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
         boolean lowHopper = tps < hopperTps && hopperTps != -1;
         if (dv) {
             Integer v = getThreshold(viewMap, tps);
-            if (v != null && !v.equals(lastView) && now - lastChangeAt >= minHoldMs) {
+            if (v != null && !v.equals(lastView) && now - lastViewChange >= minHoldMs) {
                 lastView = v;
-                lastChangeAt = now;
+                lastViewChange = now;
                 for (World w : getAllowedWorlds()) {
                     try {
-                        if (origView.computeIfAbsent(w.getUID(), k -> w.getViewDistance()) != null) persistOriginals();
+                        UUID uid = w.getUID();
+                        boolean isNew = !origView.containsKey(uid);
+                        origView.computeIfAbsent(uid, k -> w.getViewDistance());
+                        if (isNew) persistOriginals();
                         w.setViewDistance(v);
                     } catch (Exception ex) {
                         plugin.getLogger().warning("LagShield view-distance set failed for " + w.getName() + ": " + ex.getMessage());
@@ -143,12 +149,15 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
         }
         if (ds) {
             Integer s = getThreshold(simMap, tps);
-            if (s != null && !s.equals(lastSim) && now - lastChangeAt >= minHoldMs) {
+            if (s != null && !s.equals(lastSim) && now - lastSimChange >= minHoldMs) {
                 lastSim = s;
-                lastChangeAt = now;
+                lastSimChange = now;
                 for (World w : getAllowedWorlds()) {
                     try {
-                        if (origSim.computeIfAbsent(w.getUID(), k -> w.getSimulationDistance()) != null) persistOriginals();
+                        UUID uid = w.getUID();
+                        boolean isNew = !origSim.containsKey(uid);
+                        origSim.computeIfAbsent(uid, k -> w.getSimulationDistance());
+                        if (isNew) persistOriginals();
                         w.setSimulationDistance(s);
                     } catch (Exception ex) {
                         plugin.getLogger().warning("LagShield simulation-distance set failed for " + w.getName() + ": " + ex.getMessage());
@@ -158,12 +167,15 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
         }
         if (dt) {
             Integer t = getThreshold(tickMap, tps);
-            if (t != null && !t.equals(lastTick) && now - lastChangeAt >= minHoldMs) {
+            if (t != null && !t.equals(lastTick) && now - lastTickChange >= minHoldMs) {
                 lastTick = t;
-                lastChangeAt = now;
+                lastTickChange = now;
                 for (World w : getAllowedWorlds()) {
                     try {
-                        if (origTick.computeIfAbsent(w.getUID(), k -> w.getGameRuleValue(GameRule.RANDOM_TICK_SPEED)) != null) persistOriginals();
+                        UUID uid = w.getUID();
+                        boolean isNew = !origTick.containsKey(uid);
+                        origTick.computeIfAbsent(uid, k -> w.getGameRuleValue(GameRule.RANDOM_TICK_SPEED));
+                        if (isNew) persistOriginals();
                         w.setGameRule(GameRule.RANDOM_TICK_SPEED, t);
                     } catch (Exception ex) {
                         plugin.getLogger().warning("LagShield tick-speed set failed for " + w.getName() + ": " + ex.getMessage());
@@ -189,11 +201,11 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
 
     private boolean low(double threshold) {
         if (threshold == -1) return false;
-        return getTps() < threshold;
+        return cachedTps < threshold;
     }
 
     private boolean reliable() {
-        return SupportManager.isTpsReliableNow();
+        return tpsReliable;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -216,7 +228,6 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
             try {
                 org.bukkit.inventory.InventoryHolder h = e.getSource().getHolder(false);
                 if (h instanceof org.bukkit.block.Hopper hop) l = hop.getLocation();
-                else h = e.getSource().getHolder();
             } catch (Throwable ignored) {}
             if (l != null && l.getWorld() != null && !canContinue(l.getWorld())) return;
             if (reliable() && low(hopperTps)) e.setCancelled(true);
