@@ -95,14 +95,28 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
 
     void bump(Entity ent, int delta) {
         try {
-            if (ent == null || whitelist.contains(ent.getType())) return;
+            if (ent == null) return;
             int slot = slotOf(ent);
             if (slot < 0) return;
+            if (limitForSlot(slot) < 1) return;
+            if (whitelist.contains(ent.getType())) return;
             Location l = ent.getLocation();
             if (l == null || l.getWorld() == null) return;
-            int[] c = counts.computeIfAbsent(ChunkKey.of(l), k -> new int[4]);
+            if (!canContinue(l.getWorld())) return;
+            int[] c = counts.get(ChunkKey.of(l));
+            if (c == null) return;
             c[slot] = Math.max(0, c[slot] + delta);
         } catch (Throwable ignored) {}
+    }
+
+    private int limitForSlot(int slot) {
+        return switch (slot) {
+            case 0 -> creatures;
+            case 1 -> items;
+            case 2 -> vehicles;
+            case 3 -> projectiles;
+            default -> 0;
+        };
     }
 
     private boolean handleEvent(Location loc, CreatureSpawnEvent.SpawnReason reason, EntityType type, int limit, Predicate<Entity> filter, int slot) {
@@ -112,7 +126,12 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
         int cx = loc.getBlockX() >> 4, cz = loc.getBlockZ() >> 4;
         if (!w.isChunkLoaded(cx, cz)) return false;
         int[] cached = counts.get(new ChunkKey(w.getUID(), cx, cz));
-        if (cached != null) return cached[slot] >= limit;
+        if (cached != null) {
+            if (cached[slot] < limit) return false;
+            recountChunk(w, cx, cz);
+            int[] fresh = counts.get(new ChunkKey(w.getUID(), cx, cz));
+            return fresh != null && fresh[slot] >= limit;
+        }
         int count = 0;
         Entity[] entities;
         try {
