@@ -185,7 +185,15 @@ public class HopperOptimizerModule extends AbstractModule implements Listener {
 
     private boolean overCapForMove(Location l) {
         LongAdder c = chunkCount.get(ChunkKey.of(l));
-        return c != null && isOverForMove(c.intValue(), maxPerChunk);
+        if (c == null || !isOverForMove(c.intValue(), maxPerChunk)) return false;
+        try {
+            World w = l.getWorld();
+            int cx = l.getBlockX() >> 4, cz = l.getBlockZ() >> 4;
+            if (w != null && w.isChunkLoaded(cx, cz)) {
+                return isOverForMove(recountChunk(w.getChunkAt(cx, cz, false)), maxPerChunk);
+            }
+        } catch (Throwable ignored) {}
+        return true;
     }
 
     private int recountChunk(Chunk chunk) {
