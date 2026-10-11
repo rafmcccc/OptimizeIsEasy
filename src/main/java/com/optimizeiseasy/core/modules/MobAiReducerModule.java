@@ -1,16 +1,11 @@
 package com.optimizeiseasy.core.modules;
 
-import com.destroystokyo.paper.entity.ai.Goal;
 import com.destroystokyo.paper.entity.ai.MobGoals;
-import com.destroystokyo.paper.entity.ai.VanillaGoal;
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
-import com.optimizeiseasy.core.modules.ai.OptimizedBreedGoal;
-import com.optimizeiseasy.core.modules.ai.OptimizedTemptGoal;
 import com.optimizeiseasy.core.objects.AbstractModule;
 import com.optimizeiseasy.core.support.Scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
@@ -31,7 +26,6 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -56,7 +50,7 @@ import java.util.concurrent.TimeUnit;
 public class MobAiReducerModule extends AbstractModule implements Listener {
 
     /** Namespace used for goals added by this module. Never stripped as vanilla. */
-    static final String OWN_NAMESPACE = "optimizeiseasy";
+    static final String OWN_NAMESPACE = MobAiGoals.OWN_NAMESPACE;
 
     private final EnumSet<CreatureSpawnEvent.SpawnReason> reasons = EnumSet.noneOf(CreatureSpawnEvent.SpawnReason.class);
     private final EnumSet<EntityType> list = EnumSet.noneOf(EntityType.class);
@@ -100,36 +94,14 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
 
     public MobAiReducerModule(OptimizeIsEasyPlugin plugin) { super(plugin, "MobAiReducer"); }
 
-    /**
-     * Phrase-list matching, mirroring upstream semantics: when {@code listMode} is
-     * false every goal containing a listed phrase is removed, when true only listed
-     * goals are removed. Both sides must already be lower-cased.
-     */
+    /** Phrase-list matching, see {@link MobAiGoals#matchesAiList}. */
     static boolean matchesAiList(String haystackLower, Set<String> phrasesLower, boolean listMode) {
-        boolean hit = false;
-        for (String phrase : phrasesLower) {
-            if (!phrase.isEmpty() && haystackLower.contains(phrase)) {
-                hit = true;
-                break;
-            }
-        }
-        // listMode=false removes every goal NOT on the list; listMode=true removes
-        // only goals on the list. Either way a listed goal is removed iff listMode.
-        return hit == listMode;
+        return MobAiGoals.matchesAiList(haystackLower, phrasesLower, listMode);
     }
 
     /** Whether this entity looks like a ModelEngine/MythicMobs custom entity. */
     static boolean looksCustom(Entity entity) {
-        try {
-            if (!entity.getPersistentDataContainer().isEmpty()) return true;
-        } catch (Throwable ignored) {
-            // PDC access can fail on exotic entity wrappers; fall through to tags.
-        }
-        try {
-            return !entity.getScoreboardTags().isEmpty();
-        } catch (Throwable ignored) {
-            return false;
-        }
+        return MobAiGoals.looksCustom(entity);
     }
 
     public boolean isEnabled(Entity entity) {
@@ -228,89 +200,21 @@ public class MobAiReducerModule extends AbstractModule implements Listener {
 
     private void stripGoals(Mob mob) {
         MobGoals api;
-        List<Goal<Mob>> snapshot;
         try {
             api = Bukkit.getMobGoals();
-            snapshot = new ArrayList<>(api.getAllGoals(mob));
         } catch (Throwable t) {
             plugin.getLogger().warning("[MobAiReducer] AI snapshot failed for " + mob.getType() + ", skipping: " + t.getMessage());
             return;
         }
-        for (Goal<Mob> goal : snapshot) {
-            NamespacedKey key;
-            try {
-                key = goal.getKey().getNamespacedKey();
-            } catch (Throwable t) {
-                plugin.getLogger().warning("[MobAiReducer] unreadable goal on " + mob.getType() + ", skipping it: " + t.getMessage());
-                continue;
-            }
-            if (key == null) continue;
-            if (OWN_NAMESPACE.equalsIgnoreCase(key.getNamespace())) continue;
-
-            boolean vanilla = "minecraft".equalsIgnoreCase(key.getNamespace());
-            if (vanilla && breedEnabled && mob instanceof Animals animal
-                    && OptimizedBreedGoal.supports(animal.getType())
-                    && key.equals(VanillaGoal.BREED.getNamespacedKey())) {
-                replaceGoal(api, mob, goal, 2, new OptimizedBreedGoal(animal, breedRange, breedSpeed,
-                        breedEvent, breedTeleport, baby -> optimize(baby, false)));
-                continue;
-            }
-            if (vanilla && temptEnabled && mob instanceof Animals animal
-                    && key.getKey().contains("tempt")) {
-                replaceGoal(api, mob, goal, 3, new OptimizedTemptGoal(animal, temptRange, temptSpeed,
-                        temptCooldown, temptBothHands, temptEvent, temptTeleport));
-                continue;
-            }
-            // keep_dedicated: custom (non-vanilla) goals belong to other plugins, keep them.
-            if (keepDedicated && !vanilla) continue;
-
-            String haystack = (key + " " + goal.getClass().getSimpleName()).toLowerCase(Locale.ROOT);
-            if (matchesAiList(haystack, aiList, aiListMode)) {
-                try {
-                    goal.stop();
-                } catch (Throwable ignored) {
-                    // A stuck goal must not block the rest of the surgery.
-                }
-                try {
-                    api.removeGoal(mob, goal);
-                } catch (Throwable t) {
-                    // Already gone or concurrently modified; move on.
-                    plugin.getLogger().warning("[MobAiReducer] could not remove goal from " + mob.getType() + ": " + t.getMessage());
-                }
-            }
-        }
-    }
-
-    private void replaceGoal(MobGoals api, Mob mob, Goal<Mob> oldGoal, int priority, Goal<Animals> replacement) {
-        try {
-            oldGoal.stop();
-        } catch (Throwable ignored) {
-            // See stripGoals: never fail the whole pass on one goal.
-        }
-        try {
-            api.removeGoal(mob, oldGoal);
-        } catch (Throwable t) {
-            // Already gone; still add the replacement below.
-            plugin.getLogger().warning("[MobAiReducer] could not remove old goal from " + mob.getType() + ": " + t.getMessage());
-        }
-        try {
-            if (mob instanceof Animals animal) {
-                api.addGoal(animal, priority, replacement);
-            }
-        } catch (Throwable t) {
-            if (plugin.isDebug()) {
-                plugin.getLogger().fine("MobAiReducer could not add replacement goal: " + t.getMessage());
-            }
-        }
+        MobAiGoals.stripGoals(mob, api,
+                new MobAiGoals.AiOptions(breedEnabled, breedRange, breedSpeed, breedEvent, breedTeleport,
+                        temptEnabled, temptRange, temptSpeed, temptCooldown, temptBothHands, temptEvent, temptTeleport,
+                        keepDedicated, aiList, aiListMode, baby -> optimize(baby, false)),
+                plugin.getLogger(), plugin.isDebug());
     }
 
     private int countGoals(Mob mob) {
-        try {
-            return Bukkit.getMobGoals().getAllGoals(mob).size();
-        } catch (Throwable t) {
-            if (plugin.isDebug()) plugin.getLogger().fine("[MobAiReducer] goal count failed: " + t.getMessage());
-            return -1;
-        }
+        return MobAiGoals.countGoals(mob, plugin.getLogger(), plugin.isDebug());
     }
 
     private void runOnEntityThread(Entity entity, Runnable task) {
