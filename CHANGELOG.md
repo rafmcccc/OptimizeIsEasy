@@ -1,5 +1,15 @@
 # Changelog
 
+## Upgrading to 3.1.3
+
+Drop the new jar in and restart. No config changes needed. Internal refactors only, no behavior change:
+
+**Oversized modules split.** Static catalogs moved to sibling classes — ServerTuner keys → `ServerTunerKeys`, MobAI goal surgery → `MobAiGoals`, ExploitDB table → `ExploitDBEntries`. Public APIs untouched.
+
+**Border license confirmed.** World-border GUI attributed to ga0b under Apache-2.0 (see NOTICE); distribution blocker cleared.
+
+---
+
 ## Upgrading to 3.1.2
 
 Drop the new jar in and restart. No config changes needed.
