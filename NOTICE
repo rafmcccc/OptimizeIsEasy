@@ -213,13 +213,13 @@ follows:
    See the License for the specific language governing permissions and
    limitations under the License.
 
-2. Border world-border GUI by Gab
+2. Border world-border GUI by ga0b (Apache-2.0)
 -------------------------------------------------
-The world-border GUI (BorderControl module) is a port of Border by Gab.
-<!-- TODO: confirm Border's license with Gab before redistributing — no
-     license file for it was found in this repo. Until confirmed, treat
-     the Border-derived GUI code as all-rights-reserved by its author and
-     do not relicense it. -->
+The world-border GUI (BorderControl module) is a port of Border by ga0b
+(https://modrinth.com/plugin/border-plugin), which is listed under the
+Apache License, Version 2.0. The Border-derived parts of this project are
+subject to that license; the full license text is reproduced in section 1
+above. Ported files carry change notices per section 4(b).
 
 3. LagFixer by lajczik (GPL-3.0)
 -------------------------------------------------
