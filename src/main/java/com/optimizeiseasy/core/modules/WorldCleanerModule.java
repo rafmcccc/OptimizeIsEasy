@@ -130,8 +130,12 @@ public class WorldCleanerModule extends AbstractModule {
     }
 
     public boolean clearItem(Item ent) {
-        return !ent.isInvulnerable() && ent.getPickupDelay() < 200 && ent.getTicksLived() > itemsTimeLived && !itemsBlacklist.contains(ent.getItemStack().getType());
+        return !ent.isInvulnerable() && isPickupEligible(ent.getPickupDelay()) && isOldEnough(ent.getTicksLived(), itemsTimeLived) && !itemsBlacklist.contains(ent.getItemStack().getType());
     }
+
+    // ponytail: `>` keeps exactly-at-age items (froze legal drops twice when `>=`). Tighten only with a boundary test.
+    static boolean isOldEnough(int ticksLived, int threshold) { return ticksLived > threshold; }
+    static boolean isPickupEligible(int pickupDelay) { return pickupDelay < 200; }
 
     public boolean clearCreature(LivingEntity ent) {
         if (EntityProtection.isProtected(ent, protectArmorStand, protectTamed, protectLeashed, protectRidden)) return false;

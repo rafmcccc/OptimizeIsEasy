@@ -39,12 +39,16 @@ public class RedstoneLimiterModule extends AbstractModule implements Listener {
         }
     }
 
+    // ponytail: `>` keeps exactly-at-limit legal (froze legal setups twice). Tighten only with a boundary test.
+    static boolean isRedstoneOver(int count, int limit) { return count > limit; }
+    static boolean isPistonOver(int size, int limit) { return size > limit; }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onRedstone(BlockRedstoneEvent e) {
         if (!canContinue(e.getBlock().getWorld())) return;
         int count = redstoneTicks.computeIfAbsent(ChunkKey.of(e.getBlock().getChunk()), k -> new AtomicInteger())
                 .incrementAndGet();
-        if (count > redstoneLimit) {
+        if (isRedstoneOver(count, redstoneLimit)) {
             e.setNewCurrent(0);
             if (breakRedstone) e.getBlock().setType(Material.AIR);
             if (plugin.isDebug()) plugin.getLogger().fine("RedstoneLimiter blocked at " + e.getBlock().getLocation());
@@ -54,7 +58,7 @@ public class RedstoneLimiterModule extends AbstractModule implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPiston(BlockPistonExtendEvent e) {
         if (!canContinue(e.getBlock().getWorld())) return;
-        if (e.getBlocks().size() > pistonLimit) {
+        if (isPistonOver(e.getBlocks().size(), pistonLimit)) {
             e.setCancelled(true);
             if (breakPiston) e.getBlock().setType(Material.AIR);
         }

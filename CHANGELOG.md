@@ -1,5 +1,17 @@
 # Changelog
 
+## Upgrading to 3.1.4
+
+Drop the new jar in and restart. No config changes needed. Internal hardening only, no behavior change:
+
+**Boundary edges pinned.** All five caps now route through tested helpers — EntityLimiter `isDeniedAt`, Hopper place/move, Redstone ticks/piston, Explosion `cappedYield`, WorldCleaner `isOldEnough`/`isPickupEligible`. New `BoundaryTest` locks exactly-at-limit behavior (equal-to-limit froze legal setups twice).
+
+**God-command split.** `OptimizeCommand.java:401` is now a thin dispatcher plus 7 handlers by subcommand — Status, Sweep, Toggle, Reload, Gui, Kos, Edb. No logic moved, just relocated.
+
+**Folia stays partial-honest.** No live Folia server available, so the `partial` badge and FAQ note stay as-is instead of claiming full support.
+
+---
+
 ## Upgrading to 3.1.3
 
 Drop the new jar in and restart. No config changes needed. Internal refactors only, no behavior change:

@@ -23,6 +23,9 @@ public class ExplosionOptimizerModule extends AbstractModule implements Listener
 
     public ExplosionOptimizerModule(OptimizeIsEasyPlugin plugin) { super(plugin, "ExplosionOptimizer"); }
 
+    // ponytail: `>` caps only over-limit yield; exactly-at-limit untouched. Tighten only with a boundary test.
+    static float cappedYield(float yield, double lim) { return yield > lim ? (float) lim : yield; }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent e) {
         if (!canContinue(e.getLocation().getWorld())) return;
@@ -38,7 +41,7 @@ public class ExplosionOptimizerModule extends AbstractModule implements Listener
         if (yieldEnabled) {
             Double lim = perEntityYield.get(e.getEntityType());
             if (lim == null) lim = defaultYield;
-            if (e.getYield() > lim) e.setYield((float)lim.doubleValue());
+            e.setYield(cappedYield(e.getYield(), lim));
         }
         // anti-chain simplified: if already exploded recently, cancel
         if (antiChainEnabled && preventTntChains && (e.getEntityType().name().equals("PRIMED_TNT") || e.getEntityType().name().equals("TNT"))) {
@@ -50,7 +53,7 @@ public class ExplosionOptimizerModule extends AbstractModule implements Listener
     public void onBlockExplode(BlockExplodeEvent e) {
         if (!canContinue(e.getBlock().getWorld())) return;
         if (managementEnabled && cancelBlockExplosions) e.setCancelled(true);
-        if (yieldEnabled && e.getYield() > defaultYield) e.setYield((float)defaultYield);
+        if (yieldEnabled) e.setYield(cappedYield(e.getYield(), defaultYield));
     }
 
     @Override

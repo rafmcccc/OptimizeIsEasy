@@ -58,6 +58,9 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
         return -1;
     }
 
+    // ponytail: `>=` denies exactly-at-limit (wandered mobs phantom-blocked chunks twice). Relax only with a boundary test.
+    static boolean isDeniedAt(int count, int limit) { return count >= limit; }
+
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onSpawn(CreatureSpawnEvent e) {
         if (handleEvent(e.getLocation(), e.getSpawnReason(), e.getEntityType(), creatures, ent -> ent instanceof Mob, 0)) e.setCancelled(true);
@@ -130,7 +133,7 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
             if (cached[slot] < limit) return false;
             recountChunk(w, cx, cz);
             int[] fresh = counts.get(new ChunkKey(w.getUID(), cx, cz));
-            return fresh != null && fresh[slot] >= limit;
+            return fresh != null && isDeniedAt(fresh[slot], limit);
         }
         int count = 0;
         Entity[] entities;
@@ -140,7 +143,7 @@ public class EntityLimiterModule extends AbstractModule implements Listener {
             return false;
         }
         for (Entity entity : entities) {
-            if (filter.test(entity) && !whitelist.contains(entity.getType()) && ++count >= limit) {
+            if (filter.test(entity) && !whitelist.contains(entity.getType()) && isDeniedAt(++count, limit)) {
                 recountChunk(w, cx, cz);
                 return true;
             }

@@ -1,16 +1,10 @@
 package com.optimizeiseasy.core.commands;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
-import com.optimizeiseasy.core.modules.BorderControlModule;
-import com.optimizeiseasy.core.modules.ExploitDBModule;
-import com.optimizeiseasy.core.modules.HibernateModule;
 import com.optimizeiseasy.core.modules.ServerTunerModule;
-import com.optimizeiseasy.core.modules.WorldCleanerModule;
+import com.optimizeiseasy.core.modules.ExploitDBModule;
 import com.optimizeiseasy.core.objects.AbstractModule;
-import com.optimizeiseasy.core.support.SupportManager;
 import com.optimizeiseasy.core.utils.ServerReport;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -34,12 +28,6 @@ public class OptimizeCommand implements TabExecutor {
         return plugin.getConfig().getBoolean("gui.auto-open", true);
     }
 
-    private boolean requirePlayer(CommandSender sender) {
-        if (sender instanceof Player) return true;
-        sender.sendMessage("§7The GUI is in-game only. Console: §f/optimize status§7, §f/optimize edb check§7, §f/optimize kos <profile> <true|false>§7.");
-        return false;
-    }
-
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!hasPerm(sender)) {
@@ -48,7 +36,7 @@ public class OptimizeCommand implements TabExecutor {
         }
         if (args.length == 0) {
             if (sender instanceof Player p && autoOpen()) {
-                handleGui(sender);
+                OptimizeGuiHandler.gui(plugin, sender);
                 return true;
             }
             sender.sendMessage("§7Usage: §f/optimize <status|now|toggle [module]|reload|gui|krypton|version|kos|edb|border|report>");
@@ -56,305 +44,20 @@ public class OptimizeCommand implements TabExecutor {
         }
         String sub = args[0].toLowerCase();
         switch (sub) {
-            case "status" -> handleStatus(sender);
-            case "now" -> handleNow(sender);
-            case "toggle" -> handleToggle(sender, args.length > 1 ? args[1] : null);
-            case "reload" -> handleReload(sender);
-            case "gui", "menu" -> handleGui(sender);
-            case "krypton" -> handleKrypton(sender);
-            case "version", "ver", "v" -> handleVersion(sender);
-            case "kos" -> handleKos(sender, args);
-            case "edb" -> handleEdb(sender, args);
-            case "border" -> handleBorder(sender, args);
+            case "status" -> OptimizeStatusHandler.status(plugin, sender);
+            case "now" -> OptimizeSweepHandler.now(plugin, sender);
+            case "toggle" -> OptimizeToggleHandler.toggle(plugin, sender, args.length > 1 ? args[1] : null);
+            case "reload" -> OptimizeReloadHandler.reload(plugin, sender);
+            case "gui", "menu" -> OptimizeGuiHandler.gui(plugin, sender);
+            case "krypton" -> OptimizeGuiHandler.krypton(plugin, sender);
+            case "version", "ver", "v" -> OptimizeStatusHandler.version(plugin, sender);
+            case "kos" -> OptimizeKosHandler.kos(plugin, sender, args);
+            case "edb" -> OptimizeEdbHandler.edb(plugin, sender, args);
+            case "border" -> OptimizeGuiHandler.border(plugin, sender);
             case "report" -> new ServerReport(plugin).run(sender);
             default -> sender.sendMessage("§7Unknown subcommand. §f/optimize <status|now|toggle|reload|gui|krypton|version|kos|edb|border|report>");
         }
         return true;
-    }
-
-    private void handleStatus(CommandSender sender) {
-        double tps = SupportManager.currentTps();
-        double mspt = 0;
-        SupportManager sm = SupportManager.getInstance();
-        if (sm != null && sm.isSupportMspt()) {
-            try { mspt = sm.getMspt(); } catch (Exception e) { if (plugin.isDebug()) plugin.getLogger().fine("[OptimizeCommand] MSPT read failed: " + e.getMessage()); }
-        } else {
-            try { mspt = Bukkit.getAverageTickTime(); } catch (Exception e) { if (plugin.isDebug()) plugin.getLogger().fine("[OptimizeCommand] MSPT read failed: " + e.getMessage()); }
-        }
-        long entities = 0;
-        for (World w : Bukkit.getWorlds()) try { entities += w.getEntities().size(); } catch (Exception e) { if (plugin.isDebug()) plugin.getLogger().fine("[OptimizeCommand] entity count failed: " + e.getMessage()); }
-        HibernateModule hm = plugin.getModuleManager().get(HibernateModule.class);
-        boolean frozen = hm != null && hm.isFrozen();
-        // Count enabled modules
-        long enabled = plugin.getModuleManager().getModules().stream().filter(AbstractModule::isLoaded).count();
-        sender.sendMessage("§8§m    §r §a§lOptimizeIsEasy §7Status §8§m    ");
-        sender.sendMessage(" §8• §fTPS: §e" + String.format("%.2f", Math.min(tps, 20.0)));
-        sender.sendMessage(" §8• §fMSPT: §e" + String.format("%.2f", mspt));
-        sender.sendMessage(" §8• §fEntities: §e" + entities);
-        sender.sendMessage(" §8• §fHibernation: " + (frozen ? "§cFrozen (0 TPS)" : "§aRunning"));
-        sender.sendMessage(" §8• §fModules enabled: §e" + enabled + "§8/§e" + plugin.getModuleManager().getModules().size());
-        if (hm != null) {
-            WorldCleanerModule wc = plugin.getModuleManager().get(WorldCleanerModule.class);
-            if (wc != null && wc.isLoaded()) sender.sendMessage(" §8• §fNext purge: §e" + wc.getInterval() + "s");
-        }
-        if (plugin.isRestartRequired()) sender.sendMessage(" §8• §cRestart required §7- KOS/EDB patches pending");
-        if (plugin.getSoftwareDetector() != null) sender.sendMessage(" §8• §fConfigs: §e" + plugin.getSoftwareDetector().describe());
-        ExploitDBModule edb = plugin.getModuleManager().get(ExploitDBModule.class);
-        if (edb != null && edb.isLoaded()) {
-            long failed = edb.countEnabled(ExploitDBModule.CheckResult.VULNERABLE);
-            if (failed > 0) sender.sendMessage(" §8• §fExploitDB: §c" + failed + " checks failing §8(§7/optimize edb check§8)");
-        }
-    }
-
-    private void handleNow(CommandSender sender) {
-        int removed = 0;
-        WorldCleanerModule wc = plugin.getModuleManager().get(WorldCleanerModule.class);
-        if (wc != null && wc.isLoaded()) {
-            removed = wc.clearNow();
-        } else {
-            // Fallback: simple ground item clear
-            for (World w : Bukkit.getWorlds()) {
-                for (var e : w.getEntitiesByClass(org.bukkit.entity.Item.class).toArray(new org.bukkit.entity.Item[0])) {
-                    if (e.getTicksLived() > 200) { e.remove(); removed++; }
-                }
-            }
-        }
-        // GC if hibernate gc enabled
-        HibernateModule hm = plugin.getModuleManager().get(HibernateModule.class);
-        if (hm != null) {
-            try { System.gc(); } catch (Throwable ignored) {}
-        }
-        sender.sendMessage("§aOptimization pass complete. §7Removed §e" + removed + " §7entities. Freed memory.");
-        if (plugin.isDebug()) plugin.getLogger().fine("Manual optimization by " + sender.getName() + " removed " + removed);
-    }
-
-    private void handleReload(CommandSender sender) {
-        long start = System.currentTimeMillis();
-        sender.sendMessage("§7Reloading OptimizeIsEasy...");
-        try {
-            plugin.reload();
-            int ok = 0, failed = 0;
-            for (AbstractModule m : plugin.getModuleManager().getModules()) {
-                try {
-                    m.loadConfigSection();
-                    if (!m.loadConfig()) failed++;
-                    else ok++;
-                } catch (Exception ex) {
-                    failed++;
-                    plugin.getLogger().warning("Config validator: " + m.getName() + " invalid - " + ex.getMessage());
-                    if (plugin.isDebug()) plugin.getLogger().fine("Validator trace for " + m.getName() + ": " + ex);
-                }
-            }
-            long ms = System.currentTimeMillis() - start;
-            sender.sendMessage("§aReload done in " + ms + " ms. Validated " + ok + " modules, " + failed + " had issues (check console).");
-            if (plugin.isDebug()) plugin.getLogger().fine("Reload by " + sender.getName() + " ok=" + ok + " failed=" + failed);
-        } catch (Exception e) {
-            sender.sendMessage("§cReload failed: " + e.getMessage());
-            plugin.getLogger().warning("Reload failed: " + e);
-        }
-    }
-
-    private void handleGui(CommandSender sender) {
-        if (!requirePlayer(sender)) return;
-        if (plugin.getGui() == null) {
-            sender.sendMessage("§cGUI not available.");
-            return;
-        }
-        plugin.getGui().open((Player) sender);
-    }
-
-    private void handleKrypton(CommandSender sender) {
-        if (!requirePlayer(sender)) return;
-        if (plugin.getKryptonGui() == null) {
-            sender.sendMessage("§cKrypton GUI not available.");
-            return;
-        }
-        plugin.getKryptonGui().open((Player) sender);
-    }
-
-    private void handleVersion(CommandSender sender) {
-        String ver = plugin.getDescription().getVersion();
-        String paper = Bukkit.getVersion();
-        String fork = "Paper";
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            fork = "Folia";
-        } catch (Throwable t) {
-            try { Class.forName("org.purpurmc.purpur.PurpurConfig"); fork = "Purpur"; } catch (Throwable ignored) {}
-        }
-        sender.sendMessage("§aOptimizeIsEasy §7" + ver + " §8- §fPaper " + paper.split("-")[0] + " §8(" + fork + ")");
-        String latest = plugin.getUpdateChecker() != null ? plugin.getUpdateChecker().getLatest() : null;
-        if (latest != null && !latest.equals(ver)) sender.sendMessage("§eUpdate available: §f" + ver + " -> " + latest);
-        else if (latest != null) sender.sendMessage("§7You are up to date.");
-        else sender.sendMessage("§7Use §f/optimize reload §7to reload configs.");
-    }
-
-    private void handleToggle(CommandSender sender, String moduleName) {
-        HibernateModule hm = plugin.getModuleManager().get(HibernateModule.class);
-        if (moduleName == null) {
-            // Toggle hibernation/auto-optimize globally
-            if (hm == null) { sender.sendMessage("§cHibernate module not found."); return; }
-            if (hm.isFrozen()) {
-                hm.unfreeze("Manual unfreeze via /optimize toggle by " + sender.getName());
-                sender.sendMessage("§aServer unfrozen.");
-            } else {
-                if (!Bukkit.getOnlinePlayers().isEmpty()) {
-                    sender.sendMessage("§cCannot freeze while players are online.");
-                    return;
-                }
-                hm.freeze("Manual freeze via /optimize toggle by " + sender.getName());
-                sender.sendMessage("§aServer frozen.");
-            }
-            return;
-        }
-        // Toggle specific module
-        if (moduleName.equalsIgnoreCase("hibernation") || moduleName.equalsIgnoreCase("hibernate")) {
-            handleToggle(sender, null);
-            return;
-        }
-        AbstractModule mod = plugin.getModuleManager().get(moduleName);
-        if (mod == null) {
-            sender.sendMessage("§cUnknown module: §f" + moduleName);
-            sender.sendMessage("§7Available: " + String.join(", ", plugin.getModuleManager().getModules().stream().map(AbstractModule::getName).toList()));
-            return;
-        }
-        try {
-            if (mod.isLoaded()) {
-                mod.disable();
-                mod.setLoaded(false);
-                mod.getConfig().set(mod.getName() + ".enabled", false);
-                mod.getConfig().save(new java.io.File(plugin.getDataFolder(), "modules/" + mod.getName() + ".yml"));
-                sender.sendMessage("§cDisabled module §f" + mod.getName());
-            } else {
-                mod.loadConfigSection();
-                boolean ok = mod.loadConfig();
-                if (ok) {
-                    mod.load();
-                    mod.setLoaded(true);
-                    mod.getConfig().set(mod.getName() + ".enabled", true);
-                    mod.getConfig().save(new java.io.File(plugin.getDataFolder(), "modules/" + mod.getName() + ".yml"));
-                    sender.sendMessage("§aEnabled module §f" + mod.getName());
-                } else {
-                    sender.sendMessage("§cFailed to enable " + mod.getName());
-                }
-            }
-        } catch (Exception e) {
-            sender.sendMessage("§cError toggling " + mod.getName() + ": " + e.getMessage());
-            plugin.getLogger().warning("Toggle error for " + mod.getName() + ": " + e);
-        }
-    }
-
-    private void handleKos(CommandSender sender, String[] args) {
-        if (args.length >= 2 && args[1].equalsIgnoreCase("gui")) {
-            handleKrypton(sender);
-            return;
-        }
-        ServerTunerModule tuner = plugin.getModuleManager().get(ServerTunerModule.class);
-        if (tuner == null || !tuner.isLoaded()) {
-            sender.sendMessage("§cServerTuner module is disabled. Enable it with /optimize toggle ServerTuner.");
-            return;
-        }
-        if (args.length == 1) {
-            String def = tuner.defaultProfile();
-            sender.sendMessage("§7Available profiles: §f" + String.join(", ", tuner.listProfiles()));
-            sender.sendMessage("§7Default: §f" + def);
-            if (!tuner.deniedProfiles().isEmpty()) {
-                sender.sendMessage("§7Hidden by denied-profiles: §8" + String.join(", ", tuner.deniedProfiles()));
-            }
-            Boolean known = tuner.storedPregen();
-            if (known != null) {
-                tuner.runProfile(def, known, sender);
-            } else {
-                sender.sendMessage("§7Usage: §f/optimize kos <profile> <true|false-pregenerated>");
-            }
-            return;
-        }
-        String profile = args[1];
-        Boolean known = tuner.storedPregen();
-        if (args.length == 2) {
-            if (known != null) {
-                tuner.runProfile(profile, known, sender);
-            } else {
-                sender.sendMessage("§7Is your world pre-generated? §f/optimize kos " + profile + " <true|false>");
-            }
-            return;
-        }
-        String flag = args[2].toLowerCase();
-        boolean pregen;
-        if (flag.equals("true") || flag.equals("yes") || flag.equals("y")) pregen = true;
-        else if (flag.equals("false") || flag.equals("no") || flag.equals("n")) pregen = false;
-        else {
-            sender.sendMessage("§cUse true/false for pregenerated. Example: /optimize kos " + profile + " true");
-            return;
-        }
-        tuner.runProfile(profile, pregen, sender);
-    }
-
-    private void handleEdb(CommandSender sender, String[] args) {
-        if (args.length >= 2 && args[1].equalsIgnoreCase("gui")) {
-            handleEdbGui(sender);
-            return;
-        }
-        ExploitDBModule edb = plugin.getModuleManager().get(ExploitDBModule.class);
-        if (edb == null || !edb.isLoaded()) {
-            sender.sendMessage("§cExploitDB module is disabled. Enable it with /optimize toggle ExploitDB.");
-            return;
-        }
-        if (args.length == 1 || (args.length >= 2 && args[1].equalsIgnoreCase("check"))) {
-            var res = edb.checkDetailed();
-            sender.sendMessage("§8§m    §r §c§lExploitDB §7Check §8§m    ");
-            for (var e : res.entrySet()) {
-                if (!edb.isEnabled(e.getKey())) {
-                    sender.sendMessage(" §8✖ §8" + e.getKey() + " " + edb.describe(e.getKey()) + " §8- disabled in config");
-                    continue;
-                }
-                sender.sendMessage(switch (e.getValue()) {
-                    case SAFE -> " §a✔ ";
-                    case VULNERABLE -> " §c✘ ";
-                    case UNSUPPORTED -> " §8– ";
-                } + "§f" + e.getKey() + " §8- §7" + edb.describe(e.getKey()));
-            }
-            sender.sendMessage("§7Fix with §f/optimize edb patch <id|all>");
-            if (edb.isDryRun()) sender.sendMessage("§6Dry run is on in modules/ExploitDB.yml - patching writes nothing.");
-            return;
-        }
-        if (args.length >= 2 && args[1].equalsIgnoreCase("patch")) {
-            if (args.length < 3) {
-                sender.sendMessage("§7Usage: §f/optimize edb patch <EDB-1..EDB-" + edb.allIds().size() + "|all>");
-                return;
-            }
-            String id = args[2];
-            if (id.equalsIgnoreCase("all")) {
-                edb.patchAll(sender);
-            } else {
-                edb.patch(id, sender);
-            }
-            return;
-        }
-        sender.sendMessage("§7Usage: §f/optimize edb <check|patch <id|all>>");
-    }
-
-    private void handleEdbGui(CommandSender sender) {
-        if (!requirePlayer(sender)) return;
-        if (plugin.getEdbGui() == null) {
-            sender.sendMessage("§cExploitDB GUI not available.");
-            return;
-        }
-        plugin.getEdbGui().open((Player) sender);
-    }
-
-    private void handleBorder(CommandSender sender, String[] args) {
-        BorderControlModule mod = plugin.getModuleManager().get(BorderControlModule.class);
-        if (mod == null || !mod.isLoaded()) {
-            sender.sendMessage("§cBorderControl module is disabled. Enable it with /optimize toggle BorderControl.");
-            return;
-        }
-        if (!(sender instanceof Player p)) {
-            sender.sendMessage("§7Border is per-world. In-game use §f/border §7or §f/optimize border§7. Worlds: "
-                    + Bukkit.getWorlds().stream().map(World::getName).reduce((a, b) -> a + ", " + b).orElse("none"));
-            return;
-        }
-        mod.openMainGUI(p);
     }
 
     @Override
