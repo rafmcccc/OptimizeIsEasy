@@ -69,20 +69,23 @@ grep -q "OptimizeIsEasy .*Status" "$LOG" || fail "/optimize status produced no o
 grep -q "ExploitDB"               "$LOG" || fail "/exploitfix or /optimize edb produced no output"
 grep -Eq "SEVERE|Could not load|Caused by" "$LOG" && fail "exceptions in the server log"
 
-# Every module config and profile shipped inside the jar must have been written out.
+# Every file the jar ships under a plugin subdirectory must have been written out.
 python3 - "$JAR" "$SERVER/plugins/OptimizeIsEasy" <<'PY' || fail "plugin data files incomplete"
 import os, sys, zipfile
 jar, out = sys.argv[1], sys.argv[2]
+if not os.path.isdir(out):
+    sys.exit(f"smoke: no plugin data dir {out}")
 names = zipfile.ZipFile(jar).namelist()
 bad = False
-for kind, sub, ext in (("module configs", "modules", ".yml"), ("profiles", "profiles", ".kos")):
+for sub in sorted(d for d in os.listdir(out) if os.path.isdir(os.path.join(out, d))):
     shipped = sorted(os.path.basename(n) for n in names
-                     if n.startswith(sub + "/") and n.endswith(ext))
-    have = sorted(f for f in os.listdir(os.path.join(out, sub)) if f.endswith(ext))
-    print(f"smoke: {len(have)}/{len(shipped)} {kind} generated")
+                     if n.startswith(sub + "/") and n.count("/") == 1 and not n.endswith("/"))
+    have = set(os.listdir(os.path.join(out, sub)))
     missing = [f for f in shipped if f not in have]
+    if shipped:
+        print(f"smoke: {len(shipped) - len(missing)}/{len(shipped)} files generated in {sub}/")
     if missing:
-        print(f"smoke: MISSING {kind}: " + ", ".join(missing), file=sys.stderr)
+        print(f"smoke: MISSING in {sub}/: " + ", ".join(missing), file=sys.stderr)
         bad = True
 if bad:
     sys.exit(1)
