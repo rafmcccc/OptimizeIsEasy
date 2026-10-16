@@ -3,6 +3,8 @@ package com.optimizeiseasy.core.utils;
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -29,11 +31,11 @@ public class UpdateChecker {
             try {
                 if (res.statusCode() != 200) return;
                 String body = res.body();
-                int idx = body.indexOf("\"tag_name\"");
-                if (idx == -1) return;
-                int s = body.indexOf("\"", idx + 11) + 1;
-                int e = body.indexOf("\"", s);
-                latest = body.substring(s, e).replaceFirst("^v", "");
+                // Gson ships with the Paper server (libraries/com/google/code/gson), so no
+                // declared dependency: parsing beats indexOf on a field order we do not own.
+                JsonObject json = JsonParser.parseString(body).getAsJsonObject();
+                if (!json.has("tag_name") || json.get("tag_name").isJsonNull()) return;
+                latest = json.get("tag_name").getAsString().replaceFirst("^v", "");
                 if (!latest.equals(current) && isNewer(latest, current)) {
                     String msg = "Update available " + current + " -> " + latest + " at https://github.com/rafmcccc/OptimizeIsEasy/releases";
                     plugin.getLogger().warning(msg);

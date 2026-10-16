@@ -97,7 +97,8 @@ public class LagShieldModule extends AbstractModule implements Listener, Runnabl
         if (tpsReliable) readMetric();
     }
 
-    private double readMetric() {        try {
+    private double readMetric() {
+        try {
             SupportManager sm = SupportManager.getInstance();
             if (sm != null && sm.getFork() != null) {
                 if (preferMspt && sm.isSupportMspt()) {

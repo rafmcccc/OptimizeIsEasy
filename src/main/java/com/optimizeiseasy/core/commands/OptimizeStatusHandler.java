@@ -6,6 +6,7 @@ import com.optimizeiseasy.core.modules.HibernateModule;
 import com.optimizeiseasy.core.modules.WorldCleanerModule;
 import com.optimizeiseasy.core.objects.AbstractModule;
 import com.optimizeiseasy.core.support.SupportManager;
+import com.optimizeiseasy.core.utils.UpdateChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -60,7 +61,7 @@ final class OptimizeStatusHandler {
         }
         sender.sendMessage("§aOptimizeIsEasy §7" + ver + " §8- §fPaper " + paper.split("-")[0] + " §8(" + fork + ")");
         String latest = plugin.getUpdateChecker() != null ? plugin.getUpdateChecker().getLatest() : null;
-        if (latest != null && !latest.equals(ver)) sender.sendMessage("§eUpdate available: §f" + ver + " -> " + latest);
+        if (latest != null && UpdateChecker.isNewer(latest, ver)) sender.sendMessage("§eUpdate available: §f" + ver + " -> " + latest);
         else if (latest != null) sender.sendMessage("§7You are up to date.");
         else sender.sendMessage("§7Use §f/optimize reload §7to reload configs.");
     }

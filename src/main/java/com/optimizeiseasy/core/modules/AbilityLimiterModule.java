@@ -9,6 +9,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerRiptideEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,14 @@ public class AbilityLimiterModule extends AbstractModule implements Listener {
     // Called from external boost event if available; we expose for command
     public void recordElytraBoost(Player p) {
         elytraLast.put(p.getUniqueId(), System.currentTimeMillis());
+    }
+
+    // ponytail: two cooldown stamps per player, dropped on quit; no sweeper needed.
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        UUID id = e.getPlayer().getUniqueId();
+        elytraLast.remove(id);
+        tridentLast.remove(id);
     }
 
     @Override

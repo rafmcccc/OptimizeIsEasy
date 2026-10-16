@@ -12,6 +12,14 @@ Drop the new jar in and restart. No config changes needed. Internal hardening on
 
 **Live-server smoke test.** `scripts/smoke-test.sh` boots a real Paper 1.21.1 server with the built jar, feeds it `/optimize status`, `/exploitfix status` and `/optimize edb check`, then asserts the plugin enabled, wrote every module config and profile it ships, and stopped cleanly. Runs in CI as its own job — unit tests use mocks, this one does not. It also caught two wrong counts in this README (`17` module files, `3.1.2` jar name).
 
+**Player maps no longer outlive the player.** AbilityLimiter's `elytraLast`/`tridentLast` cooldown stamps and BorderListener's seven player-keyed GUI maps are cleared on `PlayerQuitEvent` (and on unregister). Both grew for the whole uptime before.
+
+**Update check reads JSON.** `UpdateChecker` gets `tag_name` with Gson — the server ships it, so no new dependency — instead of scanning the response body with `indexOf`. `/optimize version` now only offers an update when the tag is actually newer; it used to announce a downgrade whenever the latest release tag differed from the running build.
+
+**Hibernate's costs written down.** The README said freezing was free. While the server is empty and frozen nothing the server ticks runs — farms, hoppers, redstone clocks, daylight, weather, autosave — and `hibernate.gc-on-freeze` calls `System.gc()` on every freeze. Both the feature section and "What this changes" say so now.
+
+**Credits fixed.** The Border credit said the license was unconfirmed and that the plugin was designed for Folia; NOTICE has it as ga0b/Apache-2.0 and the support table says Folia is partial.
+
 ---
 
 ## Upgrading to 3.1.3

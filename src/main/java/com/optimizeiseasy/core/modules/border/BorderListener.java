@@ -2,6 +2,7 @@ package com.optimizeiseasy.core.modules.border;
 
 import com.optimizeiseasy.core.OptimizeIsEasyPlugin;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.bukkit.ChatColor;
@@ -13,6 +14,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -28,6 +30,10 @@ public class BorderListener implements Listener {
     private final Map<Player, Boolean> shrinking = new HashMap<>();
     private final Map<Player, Double> shrinkTargetSize = new HashMap<>();
     private final Map<Player, Long> shrinkDuration = new HashMap<>();
+    // Every player-keyed map above, so quit and unregister can clear them without a list
+    // to maintain by hand. Add new maps here, not to the cleanup methods.
+    private final List<Map<Player, ?>> playerMaps = List.of(settingContext, currentSize, currentDamage,
+            currentWarning, shrinking, shrinkTargetSize, shrinkDuration);
 
     public BorderListener(OptimizeIsEasyPlugin plugin) {
         this.plugin = plugin;
@@ -39,6 +45,14 @@ public class BorderListener implements Listener {
 
     public void unregister() {
         HandlerList.unregisterAll(this);
+        playerMaps.forEach(Map::clear);
+    }
+
+    // The GUI maps are keyed by Player, so a quitting player has to be dropped or the
+    // border session data outlives the session for the rest of the uptime.
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        playerMaps.forEach(m -> m.remove(event.getPlayer()));
     }
 
     public void openMainGUI(Player player) {

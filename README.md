@@ -22,7 +22,7 @@
 ## Why you will love it
 
 **It sleeps when nobody is there.**  
-Empty server means frozen ticks. No entities ticking. No daylight cycle. Just your server idling, using almost no CPU. A player joins and it wakes up instantly. Your host bill will notice.
+Empty server means frozen ticks. No entities ticking. No daylight cycle. Just your server idling, using almost no CPU. A player joins and it wakes up instantly. Freezing is total, so read the hibernation costs below before you rely on it.
 
 **It cleans without you asking.**  
 Ground items, stray mobs, projectile spam. They pile up and your TPS drops. OptimizeIsEasy sweeps them on schedule, and you can force a sweep with one command when you need it now.
@@ -39,6 +39,8 @@ One command applies a full optimisation profile to `server.properties`, `bukkit.
 
 ### Hibernate
 Freeze ticks when empty. Checks every 60 seconds if someone unfroze it manually. Optional GC on freeze to reclaim memory. No extra config needed.
+
+The freeze is total. While the server is empty and frozen, nothing the server ticks runs — farms, hoppers, redstone clocks, daylight, weather and the autosave interval all stop until a player joins. That is the point, but it is not free of consequences. `hibernate.gc-on-freeze` (default `true`) calls `System.gc()` on every freeze, which is a stop-the-world pause the host pays for; set it to `false` if you would rather not. The 60-second check re-freezes the server if someone unfreezes it by hand. See "What this changes" below.
 
 ### WorldCleaner
 Removes items, creatures and projectiles based on your lists. Interval, blacklist, time lived all configurable. Quiet by default, no chat spam.
@@ -364,7 +366,7 @@ These module keys now take precedence over the older `kos.*` keys in `config.yml
 
 Read this before installing on a live server. OptimizeIsEasy is not just an observer — it acts:
 
-- **Hibernate freezes ticks and the daylight cycle when the server is empty.** No entities tick, no daylight advances, CPU idles. A player joining wakes it instantly.
+- **Hibernate freezes ticks and the daylight cycle when the server is empty.** No entities tick, no daylight advances, CPU idles. A player joining wakes it instantly. While frozen, everything the server ticks stops — farms, hoppers, redstone clocks, weather, autosave — and every freeze runs `System.gc()` when `hibernate.gc-on-freeze` is true.
 - **RedstoneLimiter and HopperOptimizer caps can slow farms and clocks.** Redstone beyond the per-chunk cap is cancelled, hoppers wait when full. Tune `modules/RedstoneLimiter.yml` and `modules/HopperOptimizer.yml` if a farm misbehaves.
 - **LagShield temporarily lowers view distance, simulation distance and randomTickSpeed when TPS drops**, and restores your originals when the module is disabled.
 - **ServerTuner and ExploitDB edit `server.properties`, `bukkit.yml`, `spigot.yml` and the Paper configs.** Originals are backed up to `plugins/OptimizeIsEasy/backups/` first, writes are atomic, and a restart is required to apply them. A failed backup skips that file instead of writing it.
@@ -461,6 +463,6 @@ You can use, modify and sell it. Just keep the copyright notice.
 
 ## Credits
 
-Built by rafmcccc for Paper 1.21 and Paper forks. Designed for Paper, Purpur and Folia.
+Built by rafmcccc for Paper 1.21 and Paper forks. Built for Paper, Purpur, Leaf, Gale and Pufferfish; Folia support is partial (see FAQ).
 
-Server tuning and exploit checks are ports of [Kryptonite](https://github.com/LewMC/Kryptonite) by LewMC (Apache-2.0, see [NOTICE](NOTICE)). Mob AI reduction is inspired by [LagFixer](https://github.com/lajczik/lagfixer) by lajczik (GPL-3.0), reimplemented clean-room against the Paper Goal API. World-border GUI is a port of Border by Gab (see [NOTICE](NOTICE) — license still to be confirmed). Thanks to YouHaveTrouble for the optimisation guide behind the default profile.
+Server tuning and exploit checks are ports of [Kryptonite](https://github.com/LewMC/Kryptonite) by LewMC (Apache-2.0, see [NOTICE](NOTICE)). Mob AI reduction is inspired by [LagFixer](https://github.com/lajczik/lagfixer) by lajczik (GPL-3.0), reimplemented clean-room against the Paper Goal API. World-border GUI is a port of [Border](https://modrinth.com/plugin/border-plugin) by ga0b (Apache-2.0, see [NOTICE](NOTICE)). Thanks to YouHaveTrouble for the optimisation guide behind the default profile.
