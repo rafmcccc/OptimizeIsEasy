@@ -10,6 +10,8 @@ Drop the new jar in and restart. No config changes needed. Internal hardening on
 
 **Folia stays partial-honest.** No live Folia server available, so the `partial` badge and FAQ note stay as-is instead of claiming full support.
 
+**Live-server smoke test.** `scripts/smoke-test.sh` boots a real Paper 1.21.1 server with the built jar, feeds it `/optimize status`, `/exploitfix status` and `/optimize edb check`, then asserts the plugin enabled, wrote every module config and profile it ships, and stopped cleanly. Runs in CI as its own job — unit tests use mocks, this one does not. It also caught two wrong counts in this README (`17` module files, `3.1.2` jar name).
+
 ---
 
 ## Upgrading to 3.1.3

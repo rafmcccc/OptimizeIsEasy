@@ -315,7 +315,7 @@ gui:
   auto-open: true  # bare /optimize and /exploitfix open the GUI
 ```
 
-More settings live in `plugins/OptimizeIsEasy/modules/*.yml` (17 files). KOS profiles live in `plugins/OptimizeIsEasy/profiles/*.kos`. Server-file backups land in `plugins/OptimizeIsEasy/backups/`.
+More settings live in `plugins/OptimizeIsEasy/modules/*.yml` (16 files — Hibernate is configured in `config.yml`). KOS profiles live in `plugins/OptimizeIsEasy/profiles/*.kos`. Server-file backups land in `plugins/OptimizeIsEasy/backups/`.
 
 ### modules/ExploitDB.yml — deciding what gets patched
 
@@ -404,7 +404,7 @@ cd OptimizeIsEasy
 ./gradlew clean build
 ```
 
-Jar goes to `build/libs/OptimizeIsEasy-3.1.2.jar`.
+Jar goes to `build/libs/OptimizeIsEasy-<version>.jar`, where `<version>` is the `version` in `build.gradle.kts`.
 
 Requires Java 21 to build. No Paperweight, no NMS toolchain, no shaded runtime dependency.
 
@@ -447,7 +447,7 @@ Yes, but only through the `leaf` and `gale` sections of the profile, and only fo
 Because your server version does not have them. Forks add and rename options between Minecraft versions, and an absent key is skipped rather than written, so nothing your server cannot read is ever added. The count in the summary is the number of those keys.
 
 **Does it work on Folia?**
-Partially. Scheduling goes through the region scheduler, event throttles still apply, but timed purges (WorldCleaner) and overflow purges (EntityLimiter) stay off on Folia in 3.1.0 — `world.getEntities()` / `getLoadedChunks()` from the global scheduler is not region-safe. Dynamic view/simulation/tick changes are also skipped on Folia. Untested on a live Folia server — please report what you see.
+Partially. Scheduling goes through the region scheduler, event throttles still apply, but timed purges (WorldCleaner) and overflow purges (EntityLimiter) stay off on Folia — `world.getEntities()` / `getLoadedChunks()` from the global scheduler is not region-safe. Dynamic view/simulation/tick changes are also skipped on Folia. Untested on a live Folia server — please report what you see.
 
 ---
 

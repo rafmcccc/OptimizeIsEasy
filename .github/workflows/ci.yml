@@ -50,3 +50,37 @@ jobs:
         run: chmod +x ./gradlew
       - name: Compile against the newest Paper API
         run: ./gradlew compileJava compileTestJava -PpaperApi=26.2.build.132-stable -Pjdk=25 --stacktrace
+
+  # Unit tests use mocks. This job boots a real Paper server with the jar, so plugin.yml,
+  # config generation, module init and command registration are proven on a live server
+  # before a release goes out.
+  smoke:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Download jar
+        uses: actions/download-artifact@v4
+        with:
+          name: OptimizeIsEasy-jar
+          path: build/libs
+      - name: Cache Paper server
+        uses: actions/cache@v4
+        with:
+          path: .smoke/paper.jar
+          key: paper-1.21.1-${{ hashFiles('.github/workflows/ci.yml') }}
+      - name: Boot server and assert
+        run: |
+          chmod +x ./scripts/smoke-test.sh
+          ./scripts/smoke-test.sh build/libs/OptimizeIsEasy-*.jar
+      - name: Upload server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-server-log
+          path: .smoke/server.log

@@ -28,3 +28,6 @@ replay_pid*
 
 # Local agent notes (personal, not committed)
 AGENT.md
+
+# Smoke test scratch (Paper server + worlds)
+/.smoke/
