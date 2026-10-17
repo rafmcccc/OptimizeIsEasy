@@ -70,7 +70,7 @@ jobs:
           name: OptimizeIsEasy-jar
           path: build/libs
       - name: Cache Paper server
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .smoke/paper.jar
           key: paper-1.21.1-${{ hashFiles('.github/workflows/ci.yml') }}
